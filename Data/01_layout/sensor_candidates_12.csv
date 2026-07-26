@@ -1,0 +1,13 @@
+candidate_id,zone_id,x_m,y_m,preferred_sensor_family,placement_reason,data_status
+C01,Z01,11,18,smoke_or_multi,"클린룸 시공 서측 중앙 감시",synthetic_candidate
+C02,Z02,31,18,smoke_or_multi,"클린룸 시공 동측 중앙 감시",synthetic_candidate
+C03,Z03,50,18,gas_and_smoke,"펌프·배관·배기계통 인접",synthetic_candidate
+C04,Z04,19,6,silane_hydrogen_point,"가스 캐비닛·밸브·연결부 인접",synthetic_candidate
+C05,Z05,7,6,gas_and_flame,"벌크 저장·하역 누출 감시",synthetic_candidate
+C06,Z06,8,31,smoke_heat_flame,"용접·화기 작업 불티 감시",synthetic_candidate
+C07,Z07,22,31,smoke_heat,"단열재·포장재 적치 감시",synthetic_candidate
+C08,Z08,44,6,smoke_heat,"배전반·임시 전기 점화원 감시",synthetic_candidate
+C09,Z09,32,6,smoke_sampling,"공조 흐름과 배기구 영향 감시",synthetic_candidate
+C10,Z10,53,31,toxic_gas,"폐액·폐수 혼합 및 누출 감시",synthetic_candidate
+C11,Z11,38,31,smoke_co,"주 통로·피난 동선 감시",synthetic_candidate
+C12,Z12,54,6,gas_smoke,"하역·실린더 반입 및 출입구 감시",synthetic_candidate

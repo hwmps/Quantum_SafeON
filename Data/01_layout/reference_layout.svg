@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820">
+  <style>
+    .title{font:700 30px sans-serif;fill:#172033}.sub{font:18px sans-serif;fill:#455269}
+    .zone{stroke:#172033;stroke-width:3;rx:12}.label{font:700 19px sans-serif;fill:#172033}
+    .small{font:15px sans-serif;fill:#26354d}.cand{fill:#e52955;stroke:white;stroke-width:3}
+    .cid{font:700 13px sans-serif;fill:white;text-anchor:middle;dominant-baseline:central}
+  </style>
+  <rect width="1200" height="820" fill="#f5f7fb"/>
+  <text x="55" y="55" class="title">반도체 건설현장 안전센서 QUBO용 가상 참조 레이아웃</text>
+  <text x="55" y="88" class="sub">실제 도면이 아님 · 공개 시설구성 근거를 60 m × 40 m 연구용 평면으로 재구성</text>
+  <g transform="translate(55 125) scale(17 15)">
+    <rect class="zone" x="2" y="2" width="10" height="8" fill="#ffd7aa"/>
+    <rect class="zone" x="14" y="2" width="10" height="8" fill="#ffb8b8"/>
+    <rect class="zone" x="26" y="2" width="12" height="8" fill="#c6e4ff"/>
+    <rect class="zone" x="40" y="2" width="8" height="8" fill="#ffe68a"/>
+    <rect class="zone" x="50" y="2" width="8" height="8" fill="#d8f2c2"/>
+    <rect class="zone" x="2" y="12" width="18" height="12" fill="#d8edff"/>
+    <rect class="zone" x="22" y="12" width="18" height="12" fill="#cbe5ff"/>
+    <rect class="zone" x="42" y="12" width="16" height="12" fill="#c9d7ed"/>
+    <rect class="zone" x="2" y="26" width="12" height="10" fill="#ffce9f"/>
+    <rect class="zone" x="16" y="26" width="12" height="10" fill="#ead5b2"/>
+    <rect class="zone" x="30" y="26" width="16" height="10" fill="#d6f0d6"/>
+    <rect class="zone" x="48" y="26" width="10" height="10" fill="#c7eadf"/>
+  </g>
+  <g>
+    <text x="105" y="180" class="label">Z05 벌크가스·화학물</text>
+    <text x="310" y="180" class="label">Z04 특수가스·VMB</text>
+    <text x="515" y="180" class="label">Z09 팬데크·공조</text>
+    <text x="750" y="180" class="label">Z08 전기실</text>
+    <text x="920" y="180" class="label">Z12 하역·출입구</text>
+    <text x="105" y="340" class="label">Z01 클린룸 시공 서측</text>
+    <text x="445" y="340" class="label">Z02 클린룸 시공 동측</text>
+    <text x="785" y="340" class="label">Z03 서브팹·유틸리티</text>
+    <text x="105" y="555" class="label">Z06 용접·화기</text>
+    <text x="340" y="555" class="label">Z07 자재 적치</text>
+    <text x="580" y="555" class="label">Z11 주 통로·피난</text>
+    <text x="885" y="555" class="label">Z10 폐수·폐액</text>
+  </g>
+  <g>
+    <circle class="cand" cx="174" cy="215" r="17"/><text class="cid" x="174" y="215">C05</text>
+    <circle class="cand" cx="378" cy="215" r="17"/><text class="cid" x="378" y="215">C04</text>
+    <circle class="cand" cx="599" cy="215" r="17"/><text class="cid" x="599" y="215">C09</text>
+    <circle class="cand" cx="803" cy="215" r="17"/><text class="cid" x="803" y="215">C08</text>
+    <circle class="cand" cx="973" cy="215" r="17"/><text class="cid" x="973" y="215">C12</text>
+    <circle class="cand" cx="242" cy="395" r="17"/><text class="cid" x="242" y="395">C01</text>
+    <circle class="cand" cx="582" cy="395" r="17"/><text class="cid" x="582" y="395">C02</text>
+    <circle class="cand" cx="905" cy="395" r="17"/><text class="cid" x="905" y="395">C03</text>
+    <circle class="cand" cx="191" cy="590" r="17"/><text class="cid" x="191" y="590">C06</text>
+    <circle class="cand" cx="429" cy="590" r="17"/><text class="cid" x="429" y="590">C07</text>
+    <circle class="cand" cx="701" cy="590" r="17"/><text class="cid" x="701" y="590">C11</text>
+    <circle class="cand" cx="956" cy="590" r="17"/><text class="cid" x="956" y="590">C10</text>
+  </g>
+  <text x="55" y="760" class="small">근거 구조: cleanroom–subfab–utility/fan deck 계층, 특수가스 캐비닛·배기·저장, 건설단계 hot work·자재·출입 동선.</text>
+  <text x="55" y="790" class="small">좌표·크기·인접관계는 알고리즘 검증용 합성값이며 실제 설치 설계를 대체하지 않는다.</text>
+</svg>

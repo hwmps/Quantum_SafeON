@@ -1,0 +1,34 @@
+# 비밀 정보 — 절대 커밋 금지
+.env
+*.key
+*_secret*
+
+# 팀 내부 문서 (API 키·개인 메모 포함 가능)
+PM notes.txt
+Communication.txt
+AGENTS.md
+
+# 대용량·라이선스 제한 원자료
+Data/cubicasa5k/
+Data/Structured3D/
+Data/08_ui_test_corpus_*/
+Data/09_structured3d_*/
+Data/10_cubicasa5k_inventory_*/
+Data/_automation_state/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 실행 산출물 (재생성 가능)
+results/qpu_pending_jobs.json
+results/*_무보정*
+
+# OS·에디터
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

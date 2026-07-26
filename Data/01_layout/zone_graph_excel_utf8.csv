@@ -1,0 +1,13 @@
+﻿zone_id,zone_name,zone_type,x_m,y_m,width_m,height_m,adjacent_zone_ids,primary_hazard,data_status
+Z01,클린룸 시공 서측,cleanroom_construction,2,12,18,12,"Z02;Z04;Z06;Z11","임시 전기·가연성 자재·공정가스 인입",research_derived_synthetic
+Z02,클린룸 시공 동측,cleanroom_construction,22,12,18,12,"Z01;Z03;Z04;Z09;Z11","임시 전기·가연성 자재·공정가스 인입",research_derived_synthetic
+Z03,서브팹·유틸리티 시공구역,subfab_utility,42,12,16,12,"Z02;Z08;Z09;Z10;Z11","펌프·배관·덕트·배기계통",research_derived_synthetic
+Z04,특수가스 캐비닛·VMB 구역,special_gas_distribution,14,2,10,8,"Z01;Z02;Z05;Z09","실란·수소 등 가스 연결부 누출",research_derived_synthetic
+Z05,벌크가스·화학물 저장구역,bulk_gas_chemical_storage,2,2,10,8,"Z04;Z12","가스·용제 저장 및 하역 누출",research_derived_synthetic
+Z06,용접·화기 작업구역,hot_work,2,26,12,10,"Z01;Z07;Z11","불티·용단·가연물 착화",research_derived_synthetic
+Z07,자재 적치장,material_staging,16,26,12,10,"Z06;Z11;Z12","단열재·포장재·도료 적치",research_derived_synthetic
+Z08,임시 전기실·배전반,electrical_room,40,2,8,8,"Z03;Z09","전기적 점화원·케이블 화재",research_derived_synthetic
+Z09,팬데크·공조 시공구역,fan_deck_hvac,26,2,12,8,"Z02;Z03;Z04;Z08","공기 흐름에 따른 연기·가스 이동",research_derived_synthetic
+Z10,폐수·폐액 처리구역,waste_treatment,48,26,10,10,"Z03;Z11","폐액 혼합·부식성/독성 물질",research_derived_synthetic
+Z11,주 통로·피난 동선,main_corridor,30,26,16,10,"Z01;Z02;Z03;Z06;Z07;Z10;Z12","작업자 통행·연기 확산·피난",research_derived_synthetic
+Z12,하역장·주 출입구,loading_entrance,50,2,8,8,"Z05;Z07;Z11","차량·실린더/자재 반입·피난구",research_derived_synthetic

@@ -1,0 +1,50 @@
+{
+  "target": "REC-008 (high_quality_architectural/5570)",
+  "checks": [
+    {
+      "name": "V1 PNG 존재·정상 열기",
+      "pass": true,
+      "detail": "Data/cubicasa5k/high_quality_architectural/5570/F1_scaled.png (482825 bytes) | PIL verify OK"
+    },
+    {
+      "name": "V2 UI JSON 센서 = 파이프라인 후보점",
+      "pass": true,
+      "detail": "센서 12개, 반경 5.0 m"
+    },
+    {
+      "name": "V3 커버리지 재계산 대조",
+      "pass": true,
+      "detail": "144쌍, 최대 오차 0.0000 (허용 0.02)"
+    },
+    {
+      "name": "V4 QUBO+베이스라인 4종 (hard_tau=0.27)",
+      "pass": true,
+      "detail": "Exact=-2.6676 / Greedy=-2.5324 / SA=-2.6676 / Random=-2.6676"
+    },
+    {
+      "name": "V5 정본 정합 (ml_recommended·분할)",
+      "pass": true,
+      "detail": "REC-008 ml_recommended=TRUE, 분할 {'train': 4200, 'test': 400, 'val': 400}"
+    },
+    {
+      "name": "V6 residential_public_dataset 표기",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "qubo": {
+    "K": 6,
+    "hard_tau": 0.27,
+    "hard_zones": [
+      "Z01"
+    ],
+    "energies": {
+      "Exact": -2.6676,
+      "Greedy": -2.5324,
+      "SA": -2.6676,
+      "Random": -2.6676
+    },
+    "risk_note": "합성 위험도(면적 비례) — 데모 전용"
+  },
+  "all_pass": true
+}

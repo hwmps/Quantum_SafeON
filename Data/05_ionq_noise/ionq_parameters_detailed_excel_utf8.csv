@@ -1,0 +1,3 @@
+﻿system,물리큐비트,연결성,1Q오류율_pct,1Q충실도_pct_계산,2Q오류율_pct,2Q충실도_pct_계산,SPAM오류율_pct,T1최저_s,T1최고_s,T2근사_s,1Q게이트시간_us,2Q게이트시간_us,공개값성격,노이즈모델권장,출처URL,확인일,한계
+IonQ Aria,21,all-to-all,0.05,99.95,0.4,99.6,0.39,10,100,1,135,600,시스템 평균 요약,공식 평균의 0.5×/1×/2× 민감도 분석,https://www.ionq.com/resources/ionq-aria-practical-performance,2026-07-26,큐비트쌍별 분포·드리프트·상관오류·누화 미공개.
+IonQ Forte,36,all-to-all,0.02,99.98,0.4,99.6,0.5,10,100,1,,,시스템 평균 요약,실제 provider calibration metadata 우선,https://www.ionq.com/quantum-systems/forte,2026-07-26,게이트시간은 해당 공식 페이지에 수치 미제공. T1/T2 표기 순서는 Aria와 같은 방식으로 해석.

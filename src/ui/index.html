@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>QRC2026 센서 배치 UI (시안 v0.2)</title>
+<style>
+  body{font-family:'Malgun Gothic',sans-serif;margin:0;display:flex;height:100vh;background:#1e222a;color:#e8e8e8}
+  #side{width:300px;padding:14px;background:#262b35;overflow-y:auto;flex-shrink:0}
+  #main{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto}
+  canvas{background:#fff;cursor:crosshair;box-shadow:0 0 12px #0008}
+  h1{font-size:15px;margin:0 0 10px}
+  h2{font-size:13px;margin:14px 0 6px;color:#8ab4f8}
+  label{font-size:12px;display:block;margin:6px 0 2px}
+  input,select,button{width:100%;box-sizing:border-box;padding:5px;margin-bottom:4px;background:#1a1e26;color:#e8e8e8;border:1px solid #444;border-radius:4px;font-size:12px}
+  button{cursor:pointer;background:#2d5bb9;border:none}
+  button.warn{background:#8a3535}
+  #list{font-size:11px}
+  #list div{padding:3px 5px;border-bottom:1px solid #333;display:flex;justify-content:space-between}
+  #list span.del{color:#ff7b7b;cursor:pointer}
+  .note{font-size:10px;color:#999;line-height:1.5}
+  #optExplain{font-size:11px;line-height:1.55;margin-top:6px}
+  #optExplain .sum{background:#1a2b1f;border:1px solid #2e5a3a;border-radius:5px;padding:6px 8px;margin-bottom:6px;color:#bfe8c8}
+  #optExplain .sum.warn{background:#2b241a;border-color:#5a4a2e;color:#e8d8b0}
+  #optExplain .card{border-left:3px solid #555;padding:4px 7px;margin-bottom:4px;background:#1f242e;border-radius:0 4px 4px 0}
+  #optExplain .card.sel{border-left-color:#2fa35a}
+  #optExplain .card.uns{border-left-color:#777;color:#aaa}
+  #optExplain .card b{font-size:11px}
+</style>
+</head>
+<body>
+<div id="side">
+  <h1>QRC2026 센서 배치 시안 <small>v0.2</small></h1>
+
+  <h2>1. 도면 업로드</h2>
+  <input type="file" id="imgIn">
+  <div id="fileMsg" class="note"></div>
+  <label>현장 가로 크기 (m) — 축척 환산용</label>
+  <input type="number" id="siteW" value="60" min="1">
+
+  <h2>2. 반경 설정</h2>
+  <label>모드</label>
+  <select id="rMode">
+    <option value="auto">자동 (시나리오 반경)</option>
+    <option value="manual">수동 (직접 입력)</option>
+  </select>
+  <label>시나리오 (자동 모드)</label>
+  <select id="scen">
+    <option value="3">low — 3 m</option>
+    <option value="5" selected>nominal — 5 m</option>
+    <option value="8">high — 8 m</option>
+  </select>
+  <label>수동 반경 (m)</label>
+  <input type="number" id="rManual" value="5" min="0.5" step="0.5">
+
+  <h2>3. 센서 배치</h2>
+  <p class="note">도면 위를 클릭하면 센서가 점으로 추가됩니다.</p>
+  <div id="list"></div>
+  <button class="warn" id="clearBtn">전체 삭제</button>
+
+  <h2>4. 내보내기</h2>
+  <button id="exportBtn">센서 좌표 JSON 다운로드</button>
+  <p class="note">내보낸 JSON(미터 좌표)은 QUBO 파이프라인의 후보점 입력으로 사용할 예정입니다.<br>
+  ※ 시안 단계: 벽·차폐 미반영, 커버리지는 단순 원형 가정.</p>
+
+  <h2>5. 최적화 실행 (테스트본)</h2>
+  <label>설치할 센서 수 K</label>
+  <input type="number" id="optK" value="6" min="1" max="14">
+  <label>구역 격자 (행 × 열)</label>
+  <div style="display:flex;gap:4px">
+    <input type="number" id="gridR" value="3" min="1" max="6" style="width:50%">
+    <input type="number" id="gridC" value="4" min="1" max="6" style="width:50%">
+  </div>
+  <label>양자 백엔드</label>
+  <select id="qBackend">
+    <option value="ideal" selected>Ideal Simulator (로컬, 즉시)</option>
+    <option value="ionq_sim">IonQ 클라우드 시뮬레이터 (무료, 수 초~수 분)</option>
+  </select>
+  <button id="optBtn">QUBO + QAOA 최적화 실행</button>
+  <div id="optMsg" class="note"></div>
+  <div id="optResult" class="note" style="color:#cfe3ff"></div>
+  <div id="optExplain"></div>
+  <p class="note">※ 테스트본: 균일 격자 구역·균일 위험도·균일 비용 가정.
+  실제 파이프라인(위험 점수·법적 제약·실비용)과 다르며 실기 QPU는 호출하지 않습니다.
+  서버 실행 필요: <code>python src/ui/server.py</code></p>
+</div>
+<div id="main"><canvas id="cv" width="900" height="600"></canvas></div>
+
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let img=null,sensors=[];// {xm,ym,r|null}  r=null이면 자동
+let selectedIds=null;// 최적화 결과 선택 센서 id 집합 (예: ['S1','S3'])
+let zoneInfo=null;// 최적화 결과 구역별 커버율 [{id,x0,y0,x1,y1,cov}] — 취약 구역 표시용
+const WEAK_TAU=0.30;
+// index.html을 file://로 직접 열어도 로컬 서버(8788)에 붙도록 API 절대주소 사용
+const API=location.protocol==='file:'?'http://127.0.0.1:8788':'';
+const pxPerM=()=>cv.width/parseFloat(document.getElementById('siteW').value||60);
+const autoR=()=>parseFloat(document.getElementById('scen').value);
+const rOf=s=>s.r??autoR();
+
+// --- 파일 형식 식별 (UI 테스트 코퍼스 기준: 이미지=미리보기, CAD/BIM=안내 후 복귀, 불명=경고 후 복귀) ---
+const IMG_EXT=['png','jpg','jpeg','bmp','gif','webp','svg'];
+const MAX_IMG_MB=20; // 대용량 이미지 안전 한도 (디코딩 폭탄·브라우저 멈춤 방지)
+const KNOWN_FMT={ifc:'BIM(IFC)',ifcxml:'BIM(ifcXML)',ifczip:'BIM(ifcZIP)',bcfzip:'BIM 이슈(BCF)',ids:'BIM 검증(IDS)',dxf:'CAD(DXF)',dwg:'CAD(DWG)',dgn:'CAD(DGN)',stp:'CAD(STEP)',step:'CAD(STEP)',stl:'3D(STL)',amf:'3D(AMF)',ply:'3D(PLY)',obj:'3D(OBJ)',skp:'3D(SketchUp)',fds:'화재 시뮬레이션(FDS)',idf:'건물 모델(EnergyPlus IDF)',epjson:'건물 모델(epJSON)',xml:'XML(gbXML 등)',gbxml:'건물 모델(gbXML)',ttl:'시맨틱(Brick TTL)',rdf:'시맨틱(RDF)',pdf:'문서(PDF)',zip:'압축(ZIP)',csv:'표(CSV)',json:'JSON',txt:'텍스트',md:'텍스트(Markdown)',yaml:'텍스트(YAML)',yml:'텍스트(YAML)',tif:'이미지(TIFF)',tiff:'이미지(TIFF)'};
+const fileMsg=(t,c)=>{const m=document.getElementById('fileMsg');m.textContent=t;m.style.color=c||'#999';};
+function sniffImage(bytes){ // 확장자 없는 파일용 매직바이트 판별
+  const b=bytes;if(b.length<12)return null;
+  if(b[0]===0x89&&b[1]===0x50)return'png';
+  if(b[0]===0xff&&b[1]===0xd8)return'jpg';
+  if(b[0]===0x42&&b[1]===0x4d)return'bmp';
+  if(b[0]===0x47&&b[1]===0x49&&b[2]===0x46)return'gif';
+  if(b[0]===0x52&&b[1]===0x49&&b[8]===0x57&&b[9]===0x45)return'webp';
+  return null;
+}
+function loadImage(f){
+  if(f.size>MAX_IMG_MB*1048576){
+    fileMsg(`⚠ ${f.name}: 이미지가 ${MAX_IMG_MB}MB를 초과합니다(${(f.size/1048576).toFixed(1)}MB). 브라우저 멈춤 방지를 위해 축소·재저장 후 업로드해 주세요.`,'#f0b060');return;
+  }
+  const u=URL.createObjectURL(f);const im=new Image();
+  im.onload=()=>{img=im;cv.width=900;cv.height=Math.round(900*im.height/im.width);
+    selectedIds=null;zoneInfo=null;document.getElementById('optExplain').innerHTML='';
+    fileMsg(`✓ ${f.name} (${(f.size/1024).toFixed(0)} KB) 로드 완료`,'#7fc97f');draw();};
+  im.onerror=()=>{fileMsg(`✗ ${f.name} 이미지를 해석할 수 없습니다(손상 또는 비지원 인코딩). 다른 파일을 시도해 주세요.`,'#ff7b7b');};
+  im.src=u;
+}
+document.getElementById('imgIn').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const dot=f.name.lastIndexOf('.');
+  const ext=dot>0?f.name.slice(dot+1).toLowerCase():'';
+  const tiff=ext==='tif'||ext==='tiff';
+  if((IMG_EXT.includes(ext)&&!tiff)||((f.type||'').startsWith('image/')&&!tiff&&ext==='')){loadImage(f);e.target.value='';return;}
+  if(ext===''){ // 확장자 없음 → 매직바이트 스니핑
+    const head=new Uint8Array(await f.slice(0,16).arrayBuffer());
+    const kind=sniffImage(head);
+    if(kind){loadImage(f);}
+    else fileMsg(`⚠ ${f.name}: 확장자가 없어 형식을 확정할 수 없습니다(이미지 아님·텍스트 추정). PNG/JPG 도면 이미지를 업로드해 주세요.`,'#f0b060');
+    e.target.value='';return;
+  }
+  const kind=KNOWN_FMT[ext];
+  fileMsg(kind
+    ?`⚠ ${kind} 형식(.${ext})은 현재 시안에서 직접 미리보기를 지원하지 않습니다. 도면을 PNG/JPG 이미지로 변환한 뒤 업로드해 주세요. (다음 단계에서 IFC/DXF 파서 연동 검토)`
+    :`⚠ 인식할 수 없는 형식(.${ext})입니다. PNG/JPG 등 이미지 파일을 업로드해 주세요.`,'#f0b060');
+  e.target.value='';
+};
+cv.onclick=e=>{
+  const b=cv.getBoundingClientRect(),k=pxPerM();
+  const xm=(e.clientX-b.left)*(cv.width/b.width)/k, ym=(e.clientY-b.top)*(cv.height/b.height)/k;
+  const manual=document.getElementById('rMode').value==='manual';
+  sensors.push({xm:+xm.toFixed(2),ym:+ym.toFixed(2),r:manual?parseFloat(document.getElementById('rManual').value):null});
+  draw();
+};
+document.getElementById('clearBtn').onclick=()=>{sensors=[];selectedIds=null;zoneInfo=null;document.getElementById('optResult').textContent='';document.getElementById('optExplain').innerHTML='';draw();};
+['rMode','scen','rManual','siteW'].forEach(id=>document.getElementById(id).onchange=draw);
+
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(img)ctx.drawImage(img,0,0,cv.width,cv.height);
+  else{ctx.fillStyle='#f4f4f4';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle='#999';ctx.font='16px sans-serif';ctx.textAlign='center';
+    ctx.fillText('도면 이미지를 업로드한 뒤 클릭하여 센서를 배치하세요',cv.width/2,cv.height/2);}
+  const k=pxPerM();
+  // 최적화 후: 취약 구역(커버율<30%)을 붉게 표시
+  if(zoneInfo){
+    ctx.save();
+    zoneInfo.forEach(z=>{
+      const x=z.x0*k,y=z.y0*k,w=(z.x1-z.x0)*k,hh=(z.y1-z.y0)*k;
+      if(z.cov<WEAK_TAU){
+        ctx.fillStyle='rgba(220,60,50,.13)';ctx.fillRect(x,y,w,hh);
+        ctx.strokeStyle='rgba(220,60,50,.55)';ctx.setLineDash([5,4]);ctx.strokeRect(x,y,w,hh);ctx.setLineDash([]);
+        ctx.fillStyle='rgba(190,40,35,.95)';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+        ctx.fillText(`${z.id} ${(z.cov*100).toFixed(0)}%`,x+4,y+13);
+      }else{
+        ctx.strokeStyle='rgba(120,120,120,.18)';ctx.strokeRect(x,y,w,hh);
+      }
+    });
+    ctx.restore();
+  }
+  sensors.forEach((s,i)=>{
+    const x=s.xm*k,y=s.ym*k,rp=rOf(s)*k;
+    const id='S'+(i+1);
+    const sel=selectedIds?selectedIds.includes(id):null; // null=최적화 전
+    const fill=sel===null?'rgba(45,120,220,.18)':sel?'rgba(40,170,80,.25)':'rgba(120,120,120,.10)';
+    const stroke=sel===null?'rgba(45,120,220,.7)':sel?'rgba(40,170,80,.9)':'rgba(120,120,120,.4)';
+    const dot=sel===null?'#d43f3f':sel?'#1f8f4a':'#8a8a8a';
+    ctx.beginPath();ctx.arc(x,y,rp,0,7);ctx.fillStyle=fill;ctx.fill();
+    ctx.strokeStyle=stroke;ctx.stroke();
+    ctx.beginPath();ctx.arc(x,y,sel?5:4,0,7);ctx.fillStyle=dot;ctx.fill();
+    ctx.fillStyle='#222';ctx.font=(sel?'bold ':'')+'11px sans-serif';ctx.textAlign='left';
+    ctx.fillText(id+(sel?' ✓':''),x+6,y-6);
+  });
+  const L=document.getElementById('list');
+  L.innerHTML=sensors.map((s,i)=>`<div><b>S${i+1}</b> (${s.xm}, ${s.ym}) m · r=${rOf(s)}m${s.r==null?'(자동)':''} <span class="del" onclick="delS(${i})">✕</span></div>`).join('');
+}
+function delS(i){sensors.splice(i,1);draw();}
+document.getElementById('exportBtn').onclick=()=>{
+  const out={site_width_m:parseFloat(document.getElementById('siteW').value),unit:'m',
+    radius_mode:document.getElementById('rMode').value,auto_radius_m:autoR(),
+    sensors:sensors.map((s,i)=>({id:'S'+(i+1),x_m:s.xm,y_m:s.ym,radius_m:rOf(s)}))};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));
+  a.download='sensor_placement.json';a.click();
+};
+
+// --- 5. 최적화 실행 (server.py 필요) ---
+document.getElementById('optBtn').onclick=async()=>{
+  const msg=document.getElementById('optMsg'),res=document.getElementById('optResult');
+  if(sensors.length<2){msg.textContent='⚠ 센서를 2개 이상 배치하세요.';msg.style.color='#f0b060';return;}
+  const siteW=parseFloat(document.getElementById('siteW').value||60);
+  const body={site_width_m:siteW, site_height_m:+(siteW*cv.height/cv.width).toFixed(2),
+    K:parseInt(document.getElementById('optK').value||6),
+    grid_rows:parseInt(document.getElementById('gridR').value||3),
+    grid_cols:parseInt(document.getElementById('gridC').value||4),
+    backend:document.getElementById('qBackend').value, p:1,
+    sensors:sensors.map((s,i)=>({id:'S'+(i+1),x_m:s.xm,y_m:s.ym,radius_m:rOf(s)}))};
+  msg.textContent=body.backend==='ionq_sim'?'IonQ 클라우드 시뮬레이터 실행 중… (수 초~수 분)':'최적화 실행 중…';
+  msg.style.color='#8ab4f8';res.textContent='';
+  try{
+    const r=await fetch(API+'/optimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.error){msg.textContent='⚠ '+d.error;msg.style.color='#f0b060';return;}
+    selectedIds=d.selected_ids;zoneInfo=d.explanation?d.explanation.zones_info:null;draw();
+    const q=d.methods.qaoa,ex=d.methods.exact;
+    msg.textContent=`✓ 완료 (${d.time_s}s)`+(d.warning?` — ${d.warning}`:'');msg.style.color=d.warning?'#f0b060':'#7fc97f';
+    res.innerHTML=`<b>선택된 센서 (${d.selected_ids.length}/${d.n_candidates})</b>: ${d.selected_ids.join(', ')}<br>`+
+      `QAOA[${q.backend}]: 에너지 ${q.energy}, 가중 커버리지 ${q.weighted_coverage}`+
+      (q.optimal_found!==undefined?`, 최적해 발견 ${q.optimal_found?'O':'X'}`:'')+
+      (q.job_id?`<br>IonQ job: ${q.job_id}`:'')+
+      `<br>Exact 대조: 에너지 ${ex.energy}, 커버리지 ${ex.weighted_coverage}`+
+      `<br><span style="color:#999">${d.notes}</span>`;
+    // --- 결과 풀이 (사람이 읽는 해설) ---
+    const ep=document.getElementById('optExplain');
+    if(d.explanation){
+      const E=d.explanation;
+      const warn=E.weak_zones&&E.weak_zones.length>0;
+      let html=`<div class="sum${warn?' warn':''}">📋 <b>결과 풀이</b><br>${E.summary}`+
+        (warn?`<br><span style="font-size:10px">※ 도면의 붉은 점선 구역이 취약 구역입니다.</span>`:'')+`</div>`;
+      const sel=E.sensors.filter(s=>s.selected),uns=E.sensors.filter(s=>!s.selected);
+      html+=sel.map(s=>`<div class="card sel"><b>✓ ${s.id} 선택</b>`+
+        (s.covered_zones.length?` <span style="color:#8fbf9f">(${s.covered_zones.join('·')} 커버)</span>`:'')+
+        `<br>${s.reason}</div>`).join('');
+      html+=uns.map(s=>`<div class="card uns"><b>✗ ${s.id} 제외</b><br>${s.reason}</div>`).join('');
+      ep.innerHTML=html;
+    }else ep.innerHTML='';
+  }catch(e){msg.innerHTML='⚠ 로컬 서버가 꺼져 있습니다.<br>프로젝트 폴더에서 <code>.venv\\Scripts\\python.exe src\\ui\\server.py</code> 실행 후<br><a href="http://localhost:8788" style="color:#8ab4f8">http://localhost:8788</a> 로 접속하면 데모 도면이 자동 로드됩니다.';msg.style.color='#ff7b7b';}
+};
+
+// --- 시작 시 데모 도면·예시 센서 자동 로드 (서버에서 제공, 실패 시 조용히 넘어감) ---
+async function loadDemo(){
+  try{
+    const meta=await(await fetch(API+'/demo_layout')).json();
+    const im=new Image();
+    im.onload=()=>{
+      img=im;cv.width=900;cv.height=Math.round(900*im.height/im.width);
+      document.getElementById('siteW').value=meta.site_width_m;
+      sensors=(meta.sensors||[]).map(s=>({xm:s.x_m,ym:s.y_m,r:null}));
+      selectedIds=null;zoneInfo=null;
+      fileMsg(`✓ 데모 도면 자동 로드: ${meta.source} — 센서 후보 ${sensors.length}개 포함. 바로 [최적화 실행]을 눌러 시연할 수 있습니다. (직접 도면을 올리면 대체됩니다)`,'#7fc97f');
+      draw();
+    };
+    im.src=API+'/demo_plan.png';
+  }catch(e){/* 서버 미실행 — 기본 안내 화면 유지 */}
+}
+loadDemo();
+draw();
+</script>
+</body>
+</html>

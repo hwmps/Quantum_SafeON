@@ -1,0 +1,4 @@
+numpy==2.5.1
+qiskit==2.5.1
+qiskit-ionq==1.1.1
+

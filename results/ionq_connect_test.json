@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-07-26 21:49:04",
+  "steps": {
+    "1_api_key": "ok (키 존재, 값은 기록 안 함)",
+    "2_backends": [
+      "ionq_simulator",
+      "ionq_qpu"
+    ],
+    "3_transpile": {
+      "num_qubits": 29,
+      "depth": 25,
+      "two_qubit_gates": 66,
+      "ops": {
+        "rzz": 66,
+        "h": 12,
+        "rz": 12,
+        "rx": 12,
+        "measure": 12
+      },
+      "optimization_level": 3,
+      "backend_target": "ionq_simulator"
+    },
+    "4_cloud_simulator": {
+      "shots": 100,
+      "top3": [
+        [
+          "000000000000",
+          14
+        ],
+        [
+          "111111111111",
+          7
+        ],
+        [
+          "001000000000",
+          4
+        ]
+      ],
+      "job_id": "019f9e78-e71a-7689-864e-740295e7d284"
+    }
+  }
+}

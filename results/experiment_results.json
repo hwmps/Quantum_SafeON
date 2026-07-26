@@ -1,0 +1,760 @@
+{
+  "meta": {
+    "problem": "반도체 건설현장 안전 센서 최적 배치 (QUBO, 변수 12)",
+    "K_sensors": 6,
+    "hard_tau": 0.27,
+    "weather": {
+      "tm": "202607262000",
+      "stn": "108",
+      "wd_deg": 27.0,
+      "ws_ms": 1.8
+    },
+    "data_status": "레이아웃/후보점 synthetic, 반경은 민감도 가정값, 비용은 공개 장비가만",
+    "coverage_source": "Data/01_layout/coverage_matrix_fractional_excel_utf8.csv (부분면적 v1, 합성 파생: 원∩사각형 면적비, 벽·공조 미반영)",
+    "feature_weights": {
+      "hot_work": 0.0952,
+      "flammable_gas": 0.381,
+      "toxic_gas": 0.119,
+      "combustible": 0.0714,
+      "confinement": 0.2619,
+      "maintenance": 0.0714
+    }
+  },
+  "scenarios": {
+    "low": {
+      "scenario": "low",
+      "qubo_notes": {
+        "K": 6,
+        "w_cost": 0.35,
+        "lam_H": 3.0,
+        "hard_zones": [
+          "Z04",
+          "Z05",
+          "Z10"
+        ],
+        "hard_tau": 0.27,
+        "lam_K": 0.45716154140092097,
+        "hard_truncated_zones": [],
+        "hard_relaxed_zones": []
+      },
+      "risk_scores": {
+        "Z01": 0.461,
+        "Z02": 0.461,
+        "Z03": 1.0,
+        "Z04": 0.9904,
+        "Z05": 0.7979,
+        "Z06": 0.1,
+        "Z07": 0.3406,
+        "Z08": 0.5332,
+        "Z09": 0.55,
+        "Z10": 0.1481,
+        "Z11": 0.2396,
+        "Z12": 0.2925
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -0.5892920612833663,
+          "time_s": 0.0011,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.1947,
+            "zones_covered": 6,
+            "total_cost_krw": 6166748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -0.5892920612833592,
+          "time_s": 0.0006,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.1947,
+            "zones_covered": 6,
+            "total_cost_krw": 6166748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -0.5892920612833592,
+          "time_s": 0.2175,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.1947,
+            "zones_covered": 6,
+            "total_cost_krw": 6166748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -0.5892920612833592,
+          "time_s": 0.0479,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.1947,
+            "zones_covered": 6,
+            "total_cost_krw": 6166748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        }
+      ],
+      "qaoa_ideal": [
+        {
+          "p": 1,
+          "params": [
+            1.2396638432548093,
+            2.7751650724428663
+          ],
+          "expected_energy": 2.599093526616551,
+          "approx_ratio": 0.8776,
+          "prob_optimal": 0.001409,
+          "prob_optimal_vs_uniform": 5.77,
+          "time_s": 0.24,
+          "shots": 2048,
+          "best_sampled_energy": -0.5892920612833663,
+          "best_sampled_x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.1947,
+            "zones_covered": 6,
+            "total_cost_krw": 6166748,
+            "hard_constraints_ok": true
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            1.214299616042072,
+            1.5458024889501707,
+            4.345811914291099,
+            1.5924208072634158
+          ],
+          "expected_energy": 2.5882339211264838,
+          "approx_ratio": 0.878,
+          "prob_optimal": 0.001326,
+          "prob_optimal_vs_uniform": 5.43,
+          "time_s": 0.62,
+          "shots": 2048,
+          "best_sampled_energy": -0.5892920612833663,
+          "best_sampled_x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.1947,
+            "zones_covered": 6,
+            "total_cost_krw": 6166748,
+            "hard_constraints_ok": true
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ],
+      "validation": {
+        "qaoa_p1_found_exact": true,
+        "qaoa_p2_found_exact": true,
+        "exact_solution_x": [
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "exact_selected_candidates": [
+          "C04",
+          "C05",
+          "C07",
+          "C08",
+          "C09",
+          "C10"
+        ]
+      }
+    },
+    "nominal": {
+      "scenario": "nominal",
+      "qubo_notes": {
+        "K": 6,
+        "w_cost": 0.35,
+        "lam_H": 3.0,
+        "hard_zones": [
+          "Z04",
+          "Z05",
+          "Z10"
+        ],
+        "hard_tau": 0.27,
+        "lam_K": 1.2120143117488287,
+        "hard_truncated_zones": [],
+        "hard_relaxed_zones": []
+      },
+      "risk_scores": {
+        "Z01": 0.461,
+        "Z02": 0.461,
+        "Z03": 1.0,
+        "Z04": 0.9904,
+        "Z05": 0.7979,
+        "Z06": 0.1,
+        "Z07": 0.3406,
+        "Z08": 0.5332,
+        "Z09": 0.55,
+        "Z10": 0.1481,
+        "Z11": 0.2396,
+        "Z12": 0.2925
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -2.361309671435855,
+          "time_s": 0.001,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.5105,
+            "zones_covered": 6,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -2.361309671435862,
+          "time_s": 0.0004,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.5105,
+            "zones_covered": 6,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": -0.0
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -2.361309671435862,
+          "time_s": 0.1894,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.5105,
+            "zones_covered": 6,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": -0.0
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -2.361309671435862,
+          "time_s": 0.0513,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.5105,
+            "zones_covered": 6,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": -0.0
+        }
+      ],
+      "qaoa_ideal": [
+        {
+          "p": 1,
+          "params": [
+            1.0155248115052633,
+            2.905700156532366
+          ],
+          "expected_energy": 2.7547064704751123,
+          "approx_ratio": 0.907,
+          "prob_optimal": 0.000928,
+          "prob_optimal_vs_uniform": 3.8,
+          "time_s": 0.23,
+          "shots": 2048,
+          "best_sampled_energy": -2.361309671435855,
+          "best_sampled_x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.5105,
+            "zones_covered": 6,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            1.672989561146004,
+            0.866185266989995,
+            2.873058936467144,
+            1.7760596132961917
+          ],
+          "expected_energy": 4.473640665071925,
+          "approx_ratio": 0.8757,
+          "prob_optimal": 0.000503,
+          "prob_optimal_vs_uniform": 2.06,
+          "time_s": 0.75,
+          "shots": 2048,
+          "best_sampled_energy": -2.2364880072647253,
+          "best_sampled_x": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1
+          ],
+          "sampled_optimal_found": false,
+          "best_sampled_true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.4894,
+            "zones_covered": 6,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "best_sampled_gap_to_exact": 0.124822
+        }
+      ],
+      "validation": {
+        "qaoa_p1_found_exact": true,
+        "qaoa_p2_found_exact": false,
+        "exact_solution_x": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "exact_selected_candidates": [
+          "C03",
+          "C04",
+          "C05",
+          "C08",
+          "C09",
+          "C10"
+        ]
+      }
+    },
+    "high": {
+      "scenario": "high",
+      "qubo_notes": {
+        "K": 6,
+        "w_cost": 0.35,
+        "lam_H": 3.0,
+        "hard_zones": [
+          "Z04",
+          "Z05",
+          "Z10"
+        ],
+        "hard_tau": 0.27,
+        "lam_K": 1.5955100187007003,
+        "hard_truncated_zones": [],
+        "hard_relaxed_zones": []
+      },
+      "risk_scores": {
+        "Z01": 0.461,
+        "Z02": 0.461,
+        "Z03": 1.0,
+        "Z04": 0.9904,
+        "Z05": 0.7979,
+        "Z06": 0.1,
+        "Z07": 0.3406,
+        "Z08": 0.5332,
+        "Z09": 0.55,
+        "Z10": 0.1481,
+        "Z11": 0.2396,
+        "Z12": 0.2925
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -3.4139803324832627,
+          "time_s": 0.0011,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.6895,
+            "zones_covered": 10,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -3.4139803324832627,
+          "time_s": 0.0004,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.6895,
+            "zones_covered": 10,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -3.4139803324832627,
+          "time_s": 0.1933,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.6895,
+            "zones_covered": 10,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "energy": -3.4139803324832627,
+          "time_s": 0.0523,
+          "true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.6895,
+            "zones_covered": 10,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "gap_to_exact": 0.0
+        }
+      ],
+      "qaoa_ideal": [
+        {
+          "p": 1,
+          "params": [
+            0.9741044988004175,
+            2.9178716858836484
+          ],
+          "expected_energy": 2.1626433683324127,
+          "approx_ratio": 0.9202,
+          "prob_optimal": 0.00085,
+          "prob_optimal_vs_uniform": 3.48,
+          "time_s": 0.23,
+          "shots": 2048,
+          "best_sampled_energy": -3.286762200491296,
+          "best_sampled_x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": false,
+          "best_sampled_true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.6673,
+            "zones_covered": 11,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "best_sampled_gap_to_exact": 0.127218
+        },
+        {
+          "p": 2,
+          "params": [
+            0.8943867899955817,
+            4.2908084277972485,
+            2.943127755019537,
+            1.5224068827817758
+          ],
+          "expected_energy": 3.5742514662748888,
+          "approx_ratio": 0.9,
+          "prob_optimal": 0.000425,
+          "prob_optimal_vs_uniform": 1.74,
+          "time_s": 0.63,
+          "shots": 2048,
+          "best_sampled_energy": -3.4139803324832627,
+          "best_sampled_x": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "n_sensors": 6,
+            "weighted_coverage": 0.6895,
+            "zones_covered": 10,
+            "total_cost_krw": 7216748,
+            "hard_constraints_ok": true
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ],
+      "validation": {
+        "qaoa_p1_found_exact": false,
+        "qaoa_p2_found_exact": true,
+        "exact_solution_x": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "exact_selected_candidates": [
+          "C03",
+          "C04",
+          "C05",
+          "C08",
+          "C09",
+          "C10"
+        ]
+      }
+    }
+  }
+}

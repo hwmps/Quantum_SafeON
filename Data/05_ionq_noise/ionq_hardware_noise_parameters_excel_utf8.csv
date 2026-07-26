@@ -1,0 +1,3 @@
+﻿system,qubit_count,connectivity,one_qubit_gate_error_pct,two_qubit_gate_error_pct,spam_error_pct,t1_seconds_lower,t1_seconds_upper,t2_seconds_approx,one_qubit_gate_time_us,two_qubit_gate_time_us,source_url,checked_date,interpretation_status
+IonQ Aria,21,all_to_all,0.05,0.4,0.39,10,100,1,135,600,https://www.ionq.com/resources/ionq-aria-practical-performance,2026-07-26,official_average_specs
+IonQ Forte,36,all_to_all,0.02,0.4,0.5,10,100,1,NA,NA,https://www.ionq.com/quantum-systems/forte,2026-07-26,"official_average_specs; T1/T2 열은 페이지의 '10–100s, ~1s' 표기를 Aria와 같은 순서로 해석"
