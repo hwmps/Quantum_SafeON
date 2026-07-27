@@ -24,16 +24,18 @@ from qubo import N, build_qubo, all_energies, true_metrics
 from baselines import solve_exact, solve_greedy, solve_sa, solve_random
 from qaoa_sim import run_qaoa
 import weather_kma
+import fire_scenario
 
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results")
 K_SENSORS = 6  # 센서 수 제한 (예산 가정 — PM 확정 필요)
 HARD_TAU = 0.27  # hard 제약 커버율 임계값 (PM 지시 2026-07-26: low 시나리오 Z10 구조적 미충족(최대 0.283) 해소 위해 0.3→0.27 하향)
 
 
-def run_scenario(scenario, zones, candidates, incidents, costs, radii, weather=None):
+def run_scenario(scenario, zones, candidates, incidents, costs, radii, weather=None,
+                 fire_sources=None):
     # 2026-07-26: Codex 부분면적 커버리지 행렬 v1 사용 (기존 이진 행렬은 dl.coverage_matrix로 유지)
     a = dl.load_fractional_coverage(candidates, scenario)
-    risk = zone_risk_scores(zones, incidents, weather=weather)
+    risk = zone_risk_scores(zones, incidents, weather=weather, fire_sources=fire_sources)
     hard = hard_cover_zones(zones)
     cand_costs = [dl.candidate_cost(c, costs) for c in candidates]
 
@@ -72,7 +74,7 @@ def run_scenario(scenario, zones, candidates, incidents, costs, radii, weather=N
     return res
 
 
-def main():
+def main(fire=None):
     zones = dl.load_zones()
     candidates = dl.load_candidates()
     incidents = dl.load_incidents()
@@ -80,6 +82,10 @@ def main():
     # D3 시계열이 있으면 보수적 대표값(풍속 90퍼센타일·최다 풍향), 없으면 단일시각 캐시,
     # 둘 다 없으면 None → 기상 보정 없이 실행 (2026-07-27 PM 지시로 대표값 경로 추가)
     weather = weather_kma.representative_weather()
+    # 화재 발생원 시나리오 (2026-07-27 PM 지시). 미지정이면 발생원 없음 = 기존 결과와 동일.
+    provider = fire_scenario.get_provider(fire, zones)
+    fire_sources = provider.get_sources()
+    suffix = f"_fire_{provider.label}" if fire_sources else ""
 
     out = {
         "meta": {
@@ -87,6 +93,10 @@ def main():
             "K_sensors": K_SENSORS,
             "hard_tau": HARD_TAU,
             "weather": weather or "미반영 (Data/06_weather 캐시 없음 — src/weather_kma.py 로 수집)",
+            "fire_scenario": {"이름": provider.label, "발생원": fire_sources,
+                              "설명": fire_scenario.describe(fire_sources),
+                              "영향구역": fire_scenario.affected_zones(zones, fire_sources),
+                              "출처": "실측 센서 아님 — 예시 설정값(config/fire_scenarios.json)"},
             "data_status": "레이아웃/후보점 synthetic, 반경은 민감도 가정값, 비용은 공개 장비가만",
             "coverage_source": "Data/01_layout/coverage_matrix_fractional_excel_utf8.csv (부분면적 v1, 합성 파생: 원∩사각형 면적비, 벽·공조 미반영)",
             "feature_weights": {k: round(v, 4) for k, v in feature_weights(incidents).items()},
@@ -95,25 +105,32 @@ def main():
     }
     for sc in ("low", "nominal", "high"):
         print(f"=== 시나리오: {sc} ===")
-        out["scenarios"][sc] = run_scenario(sc, zones, candidates, incidents, costs, radii, weather=weather)
+        out["scenarios"][sc] = run_scenario(sc, zones, candidates, incidents, costs, radii,
+                                            weather=weather, fire_sources=fire_sources)
         v = out["scenarios"][sc]["validation"]
         print("  Exact 선택:", v["exact_selected_candidates"])
         print("  QAOA p=1 최적해 발견:", v["qaoa_p1_found_exact"], "| p=2:", v["qaoa_p2_found_exact"])
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
-    with open(os.path.join(RESULTS_DIR, "experiment_results.json"), "w", encoding="utf-8") as f:
+    # 화재 시나리오를 적용한 실행은 기본 결과를 덮어쓰지 않고 별도 파일로 남긴다.
+    res_json = f"experiment_results{suffix}.json"
+    res_md = f"실험결과_요약{suffix}.md"
+    with open(os.path.join(RESULTS_DIR, res_json), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
 
-    write_summary(out)
-    print("\n저장 완료: results/experiment_results.json, results/실험결과_요약.md")
+    write_summary(out, res_md)
+    print(f"\n저장 완료: results/{res_json}, results/{res_md}")
 
 
-def write_summary(out):
+def write_summary(out, filename="실험결과_요약.md"):
     L = ["# 실험 결과 요약 — 센서 최적 배치 (QUBO + QAOA Ideal)",
          "",
          f"- 문제: {out['meta']['problem']}, 센서 수 제한 K={out['meta']['K_sensors']}, "
          f"hard 커버율 임계값 τ={out['meta']['hard_tau']} (PM 확정 2026-07-26)",
          f"- 기상 보정: {out['meta']['weather']}",
+         f"- 화재 시나리오: {out['meta']['fire_scenario']['설명']}"
+         + (f" → 영향 구역 {', '.join(out['meta']['fire_scenario']['영향구역'])}"
+            if out['meta']['fire_scenario']['영향구역'] else ""),
          f"- 데이터 상태: {out['meta']['data_status']}",
          "- 해석 원칙: '양자 이득' 주장 없음. Ideal Simulator에서 QUBO 정식화의 정합성 검증이 목적.",
          ""]
@@ -144,9 +161,19 @@ def write_summary(out):
             L.append(f"- ⚠ hard 완화 구역: {', '.join(rz)} — 이 시나리오에서는 어떤 조합으로도 "
                      f"커버율 τ={out['meta']['hard_tau']} 도달 불가(최대 가능 커버율 < τ). 센서 추가·반경 재검토 필요 사항으로 보고.")
         L.append("")
-    with open(os.path.join(RESULTS_DIR, "실험결과_요약.md"), "w", encoding="utf-8") as f:
+    with open(os.path.join(RESULTS_DIR, filename), "w", encoding="utf-8") as f:
         f.write("\n".join(L))
 
 
 if __name__ == "__main__":
-    main()
+    # 사용법:
+    #   python src/run_experiment.py                          # 기본(화재 발생원 없음)
+    #   python src/run_experiment.py --fire 특수가스_배관실_누출  # 화재 시나리오 적용
+    #   python src/run_experiment.py --fire-list               # 프리셋 목록
+    args = sys.argv[1:]
+    if args and args[0] == "--fire-list":
+        for k, v in fire_scenario.list_presets().items():
+            print(f"- {k}: {v.get('설명', '')}")
+        sys.exit(0)
+    fire_arg = args[1] if len(args) > 1 and args[0] == "--fire" else None
+    main(fire_arg)

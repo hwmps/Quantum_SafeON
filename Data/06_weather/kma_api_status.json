@@ -1,0 +1,29 @@
+{
+  "점검시각": "2026-07-27 11:59:35",
+  "지점": "108",
+  "기준시각": "202607270900",
+  "점검": [
+    {
+      "항목": "단일시각 조회(kma_sfctm2)",
+      "요청": "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php?tm=202607270900&stn=108&help=0&authKey=<KMA_API_KEY>",
+      "결과": "성공",
+      "확보_행수": 1,
+      "비고": "기존 승인분"
+    },
+    {
+      "항목": "시간별 기간조회(kma_sfctm3)",
+      "요청": "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php?tm1=202607262300&tm2=202607270000&stn=108&help=0&authKey=<KMA_API_KEY>",
+      "결과": "성공",
+      "확보_행수": 2,
+      "비고": "PM 신청분 — 성공이면 25회 반복 없이 1회로 수집 가능"
+    },
+    {
+      "항목": "일자별 기간조회(kma_sfcdd3)",
+      "요청": "https://apihub.kma.go.kr/api/typ01/url/kma_sfcdd3.php?tm1=20260726&tm2=20260727&stn=108&help=1&authKey=<KMA_API_KEY>",
+      "결과": "성공",
+      "확보_행수": 1,
+      "비고": "PM 신청분 — 일평균·일최대 풍속 확보 가능"
+    }
+  ],
+  "비고": "인증키는 기록하지 않는다. 실패한 항목의 값을 합성하지 않았다."
+}

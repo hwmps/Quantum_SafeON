@@ -15,6 +15,7 @@ WD 단위는 API help=1 기준 degree로 가정 — 실데이터 수신 후 1회
 import csv
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -29,7 +30,12 @@ SERIES_PATH = os.path.join(DATA_DIR, "06_weather", "kma_wind_timeseries.csv")
 SERIES_META_PATH = os.path.join(DATA_DIR, "06_weather", "kma_wind_timeseries_meta.json")
 DIAG_PATH = os.path.join(DATA_DIR, "06_weather", "kma_fetch_diagnosis.json")
 BASE_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php"
-SERIES_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php"  # 기간조회(tm1~tm2)
+SERIES_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php"  # 시간별 기간조회(tm1~tm2)
+DAILY_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfcdd3.php"   # 일자별 기간조회(일자료)
+DAILY_PATH = os.path.join(DATA_DIR, "06_weather", "kma_wind_daily.csv")
+DAILY_META_PATH = os.path.join(DATA_DIR, "06_weather", "kma_wind_daily_meta.json")
+RAW_HEAD_PATH = os.path.join(DATA_DIR, "06_weather", "kma_daily_raw_head.txt")
+STATUS_PATH = os.path.join(DATA_DIR, "06_weather", "kma_api_status.json")
 DEFAULT_STN = "108"  # 서울 관측소 (현장 인근 지점으로 교체 가능)
 MISSING = {-9.0, -99.0, -999.0}
 
@@ -250,6 +256,184 @@ def fetch_timeseries_hourly(tm1, tm2, stn=DEFAULT_STN, sleep_s=0.3):
     return rows
 
 
+# ── 일자별 기간조회(kma_sfcdd3) — PM 지시 2026-07-27 ("시간별·일자별 기간조회 신청, 재실험") ──
+# 일자료는 컬럼 구성이 시간자료(sfctm2)와 다르므로 위치로 추측하지 않고 응답 헤더의
+# 컬럼명을 읽어 매핑한다. 헤더를 못 읽으면 값을 만들어내지 않고 실패로 남긴다.
+DAILY_FIELD_CANDIDATES = {
+    "ws_avg_ms": ["WS_AVG", "AVG_WS", "WS_DAY"],
+    "ws_max_ms": ["WS_MAX", "WS_INS", "MAX_WS"],
+    "wd_max_deg": ["WD_MAX", "WS_MAX_WD", "WD_INS", "MAX_WD"],
+}
+
+
+def parse_header_columns(text):
+    """'#' 주석에서 나열형 또는 번호형 컬럼 정의를 읽는다. 실패 시 None."""
+    numbered = {}
+    for line in text.splitlines():
+        if not line.startswith("#"):
+            continue
+        toks = line.lstrip("#").split()
+        if "TM" in toks and "STN" in toks and len(toks) >= 4:
+            return {name: i for i, name in enumerate(toks)}
+        match = re.match(r"^#\s*(\d+)\.\s+([A-Z][A-Z0-9_]*)\b", line)
+        if match:
+            numbered[match.group(2)] = int(match.group(1)) - 1
+    if "TM" in numbered and "STN" in numbered and len(numbered) >= 4:
+        return numbered
+    return None
+
+
+def parse_sfcdd3(text, expect_stn=None):
+    """일자료 응답 → [{tm, stn, ws_avg_ms, ws_max_ms, wd_max_deg}]. 매핑 실패 시 (None, 사유).
+
+    범례로 얻은 컬럼 위치가 실제 데이터 행과 어긋나면 값이 조용히 뒤바뀔 수 있으므로,
+    행마다 TM 이 8자리 날짜인지 / STN 이 요청 지점과 같은지를 확인해 정렬을 검증한다
+    (expect_stn 지정 시). 검증에 실패한 행은 버리고 값을 추측하지 않는다.
+    """
+    cols = parse_header_columns(text)
+    if not cols:
+        return None, "응답에서 컬럼명 헤더를 찾지 못했다(help=1 로도 미제공)."
+    idx = {}
+    for key, cands in DAILY_FIELD_CANDIDATES.items():
+        hit = next((c for c in cands if c in cols), None)
+        if hit is not None:
+            idx[key] = cols[hit]
+    if "ws_avg_ms" not in idx:
+        return None, f"평균 풍속 컬럼을 찾지 못했다. 응답 컬럼: {sorted(cols)}"
+    out, misaligned, ncols = [], 0, None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        p = line.split()
+        if len(p) <= max(idx.values()):
+            continue
+        ncols = ncols or len(p)
+        row = {"tm": p[cols.get("TM", 0)], "stn": p[cols.get("STN", 1)]}
+        # 정렬 검증: TM 은 YYYYMMDD 8자리, STN 은 요청 지점과 일치해야 한다.
+        if not (len(row["tm"]) == 8 and row["tm"].isdigit()) or \
+                (expect_stn is not None and row["stn"] != str(expect_stn)):
+            misaligned += 1
+            continue
+        ok = True
+        for key, i in idx.items():
+            try:
+                v = float(p[i])
+            except ValueError:
+                ok = False
+                break
+            row[key] = None if v in MISSING else v
+        if ok and row.get("ws_avg_ms") is not None:
+            row["_ncols"] = len(p)
+            out.append(row)
+    if not out:
+        return None, ("헤더는 읽었으나 유효한 일자료 행이 없다."
+                      + (f" (정렬 불일치 {misaligned}행 — 범례 컬럼 수 {len(cols)}, "
+                         f"데이터 컬럼 수 {ncols})" if misaligned else ""))
+    return out, None
+
+
+def fetch_daily(tm1, tm2, stn=DEFAULT_STN):
+    """일자별 기간조회로 일평균·일최대 풍속과 최대풍속 시 풍향을 받아 CSV 로 저장한다.
+
+    tm1, tm2: YYYYMMDD (일자료는 일 단위). 성공 시 행 리스트, 실패 시 None.
+    응답 앞부분(인증키 제외)은 kma_daily_raw_head.txt 에 남겨 컬럼 매핑을 1회 검증할 수 있게 한다.
+    """
+    key = _get_key()
+    d1, d2 = tm1[:8], tm2[:8]
+    url = f"{DAILY_URL}?tm1={d1}&tm2={d2}&stn={stn}&help=1&authKey={key}"
+    url_no_key = url.replace(key, "<KMA_API_KEY>")
+    try:
+        text = _fetch_text(url)
+    except Exception as e:  # noqa: BLE001
+        cause, detail = classify_error(e)
+        _write_diagnosis("일자별 기간조회(kma_sfcdd3)", url_no_key, cause, detail)
+        return None
+    os.makedirs(os.path.dirname(RAW_HEAD_PATH), exist_ok=True)
+    lines = text.splitlines()
+    data_lines = [l for l in lines if l.strip() and not l.startswith("#")][:3]
+    with open(RAW_HEAD_PATH, "w", encoding="utf-8") as f:
+        # 컬럼 매핑 검증용 (인증키 미포함): 범례 전체 + 데이터 앞 3행
+        f.write("\n".join(lines[:60] + ["", "# --- 데이터 행 예시 ---"] + data_lines))
+    rows, err = parse_sfcdd3(text, expect_stn=stn)
+    if rows is None:
+        _write_diagnosis("일자별 기간조회(kma_sfcdd3)", url_no_key, "SCHEMA_UNRESOLVED",
+                         f"{err} 응답 앞부분을 {RAW_HEAD_PATH} 에 남겼다. "
+                         "값을 추측해 채우지 않았다.")
+        return None
+    with open(DAILY_PATH, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["tm", "stn", "ws_avg_ms", "ws_max_ms", "wd_max_deg"])
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k) for k in w.fieldnames})
+    with open(DAILY_META_PATH, "w", encoding="utf-8") as f:
+        json.dump({"수집시각": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                   "수집방법": "일자별 기간조회(kma_sfcdd3) 1회 호출",
+                   "요청_기간": [d1, d2], "지점": stn, "확보_행수": len(rows),
+                   "컬럼매핑_검증": (f"응답 범례(#N. 컬럼명) 기준 자동 매핑 + 행별 TM·STN 정렬 검증. "
+                                 f"데이터 컬럼 수 {rows[0].get('_ncols')}. 원문: {RAW_HEAD_PATH}"),
+                   "비고": "기상청 공식 관측. 합성·보간 없음."}, f, ensure_ascii=False, indent=2)
+    print(f"일자료 저장: {DAILY_PATH} → {len(rows)}행 ({rows[0]['tm']}~{rows[-1]['tm']})")
+    return rows
+
+
+def recheck_apis(tm=None, stn=DEFAULT_STN):
+    """PM 신청분 재실험: 단일시각·시간별 기간조회·일자별 기간조회 3종의 승인 상태를 한 번에 점검한다.
+
+    각 엔드포인트를 최소 범위로 1회씩만 호출하고 결과를 kma_api_status.json 에 남긴다.
+    인증키는 기록하지 않는다.
+    """
+    _get_key()
+    if tm is None:
+        tm = (datetime.now() - timedelta(hours=2)).strftime("%Y%m%d%H00")
+    day = tm[:8]
+    prev_day = (datetime.strptime(day, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
+    checks = []
+
+    def _probe(name, url_tmpl, ok_fn):
+        key = os.environ["KMA_API_KEY"]
+        url = url_tmpl.format(key=key)
+        rec = {"항목": name, "요청": url.replace(key, "<KMA_API_KEY>")}
+        try:
+            text = _fetch_text(url)
+        except Exception as e:  # noqa: BLE001
+            cause, detail = classify_error(e)
+            rec.update({"결과": "실패", "원인코드": cause, "설명": detail})
+            checks.append(rec)
+            return
+        n, note = ok_fn(text)
+        rec.update({"결과": "성공" if n else "응답이상", "확보_행수": n, "비고": note})
+        checks.append(rec)
+
+    _probe("단일시각 조회(kma_sfctm2)",
+           f"{BASE_URL}?tm={tm}&stn={stn}&help=0&authKey={{key}}",
+           lambda t: (len(parse_sfctm2(t)), "기존 승인분"))
+    _probe("시간별 기간조회(kma_sfctm3)",
+           f"{SERIES_URL}?tm1={prev_day}2300&tm2={day}0000&stn={stn}&help=0&authKey={{key}}",
+           lambda t: (len(parse_sfctm2(t)), "PM 신청분 — 성공이면 25회 반복 없이 1회로 수집 가능"))
+
+    def _daily_ok(t):
+        rows, err = parse_sfcdd3(t, expect_stn=stn)
+        return (len(rows) if rows else 0, err or "PM 신청분 — 일평균·일최대 풍속 확보 가능")
+
+    _probe("일자별 기간조회(kma_sfcdd3)",
+           f"{DAILY_URL}?tm1={prev_day}&tm2={day}&stn={stn}&help=1&authKey={{key}}", _daily_ok)
+
+    out = {"점검시각": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "지점": stn,
+           "기준시각": tm, "점검": checks,
+           "비고": "인증키는 기록하지 않는다. 실패한 항목의 값을 합성하지 않았다."}
+    os.makedirs(os.path.dirname(STATUS_PATH), exist_ok=True)
+    with open(STATUS_PATH, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=2)
+    print(f"\n=== 기상청 API 상태 점검 (지점 {stn}) ===")
+    for c in checks:
+        mark = "O" if c["결과"] == "성공" else "X"
+        print(f"  [{mark}] {c['항목']}: {c['결과']}"
+              + (f" ({c.get('원인코드')})" if c.get("원인코드") else f" — {c.get('확보_행수')}행"))
+    print(f"저장: {STATUS_PATH}")
+    return out
+
+
 def load_cached_timeseries():
     """저장된 D3 시계열 반환. 없으면 None."""
     if not os.path.exists(SERIES_PATH):
@@ -310,6 +494,8 @@ def _usage():
           "  python src/weather_kma.py <tm> [stn]           # 특정 시각 관측 캐시\n"
           "  python src/weather_kma.py --range <tm1> <tm2> [stn]   # D3 시계열 (403이면 자동 폴백)\n"
           "  python src/weather_kma.py --range-hourly <tm1> <tm2> [stn]  # 단일시각 정시 반복만 사용\n"
+          "  python src/weather_kma.py --daily <tm1> <tm2> [stn]   # 일자별 기간조회 (YYYYMMDD)\n"
+          "  python src/weather_kma.py --recheck [tm] [stn]  # 신청한 API 3종 승인 상태 재점검\n"
           "  python src/weather_kma.py --summary            # 저장된 시계열 대표값 출력\n"
           "  tm 형식: YYYYMMDDHHMM (KST). 인증키는 .env 의 KMA_API_KEY 에서만 읽는다.")
 
@@ -322,6 +508,18 @@ if __name__ == "__main__":
         s = summarize_timeseries()
         print(json.dumps(s, ensure_ascii=False, indent=2) if s
               else f"저장된 시계열이 없다: {SERIES_PATH}")
+    elif args and args[0] == "--recheck":
+        tm = args[1] if len(args) > 1 else None
+        stn = args[2] if len(args) > 2 else DEFAULT_STN
+        st = recheck_apis(tm, stn)
+        sys.exit(0 if any(c["결과"] == "성공" for c in st["점검"]) else 1)
+    elif args and args[0] == "--daily":
+        if len(args) < 3:
+            _usage()
+            sys.exit(2)
+        stn = args[3] if len(args) > 3 else DEFAULT_STN
+        rows = fetch_daily(args[1], args[2], stn)
+        sys.exit(0 if rows else 1)
     elif args and args[0] in ("--range", "--range-hourly"):
         if len(args) < 3:
             _usage()

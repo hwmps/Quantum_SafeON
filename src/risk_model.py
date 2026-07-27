@@ -117,16 +117,25 @@ def downwind_weight(src_xy, tgt_xy, weather):
     return 1.0 + WIND_DIR_MAX_GAIN * cos_sim * speed_factor
 
 
-def zone_risk_scores(zones, incidents, weather=None, source_zone=None):
+def zone_risk_scores(zones, incidents, weather=None, source_zone=None, fire_sources=None):
     """구역별 위험 점수 r_z ∈ [0.1, 1.0]. weather(기상청 풍속·풍향) 있으면 보정 반영.
 
     source_zone: 누출·발화 가정 지점 구역 id. 지정하면 풍향 방향성 보정을 추가 적용한다
     (미지정 또는 무풍이면 기존 동작과 동일 — 하위 호환).
+    fire_sources: fire_scenario 표준 발생원 리스트(위치·반경·세기). 지정하면 발생원 반경
+    기준 거리 감쇠 가중을 곱하고, 풍향 보정도 각 발생원 기준으로 함께 적용한다
+    (2026-07-27 PM 지시: 센서 미연동 상태에서 화재 위치·반경을 예시로 설정 가능하게).
+    비면 계수가 정확히 1.0 이라 기존 결과와 수치가 동일하다.
     """
     fw = feature_weights(incidents)
     src_xy = None
     if source_zone and source_zone in zones:
         src_xy = (zones[source_zone]["cx"], zones[source_zone]["cy"])
+    fire_mult = None
+    if fire_sources:
+        import fire_scenario
+        fire_mult = lambda xy: fire_scenario.hazard_multiplier(  # noqa: E731
+            xy, fire_sources, dir_weight=lambda a, b: downwind_weight(a, b, weather))
     raw = {}
     for zid, z in zones.items():
         feats = ZONE_FEATURES.get(z["type"], {})
@@ -136,6 +145,8 @@ def zone_risk_scores(zones, incidents, weather=None, source_zone=None):
         s *= wind_multiplier(feats, weather)
         if src_xy is not None:
             s *= downwind_weight(src_xy, (z["cx"], z["cy"]), weather)
+        if fire_mult is not None:
+            s *= fire_mult((z["cx"], z["cy"]))
         raw[zid] = s
     lo, hi = min(raw.values()), max(raw.values())
     span = (hi - lo) or 1.0

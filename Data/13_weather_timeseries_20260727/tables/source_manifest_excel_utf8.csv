@@ -1,0 +1,2 @@
+﻿source_id,source_name,source_url,documentation_url,checked_date,license_or_terms,original_location
+D3-SRC-001,기상청 API허브 지상관측 시간자료,https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php,https://apihub.kma.go.kr/apiList.do?apiSeq=2,2026-07-27,기상청 API허브 이용조건 적용; 인증키 재배포 금지,지상관측자료 > 시간자료(기간 조회)

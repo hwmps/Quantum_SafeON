@@ -1,0 +1,2 @@
+﻿assumption_id,category,statement,impact,mitigation
+D3-LIM-001,수집 차단,관측값을 확보하지 못했으므로 대표 풍향·풍속 사례와 QUBO 입력값을 생성하지 않음,D3는 미완료이며 임의·합성 기상값을 실제 관측처럼 사용하면 안 됨,PM이 API허브 마이페이지에서 키 유효성과 지상관측 시간자료 활용신청 상태를 확인한 뒤 로컬 .env의 KMA_API_KEY만 갱신

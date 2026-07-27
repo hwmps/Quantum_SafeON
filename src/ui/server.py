@@ -23,6 +23,9 @@ import env_loader  # noqa: F401
 import qubo as qubo_mod
 import baselines as bl
 import qaoa_sim as qs
+import fire_scenario
+import hazard_explain as hx
+import weather_kma
 
 UI_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SRC)
@@ -38,6 +41,56 @@ _DEMO_CANDIDATES = [
 DEMO_PNG = next((p for p in _DEMO_CANDIDATES if os.path.exists(p)), _DEMO_CANDIDATES[0])
 DEMO_SENSORS = os.path.join(ROOT, "results", "cubicasa5k_ui_example.json")
 DEMO_SITE_WIDTH_M = 30.0  # assumed_long_side_m (cubicasa5k_demo_layout.json)
+
+
+_WEATHER_CACHE = {"t": 0.0, "v": None}
+_WEATHER_TTL_S = 300.0
+
+
+def current_weather():
+    """기상 대표값(D3 관측 시계열 기반). 파일 재파싱을 막기 위해 5분 캐시.
+
+    실패하거나 관측이 없으면 None → 풍향 보정 없이(등방) 동작한다.
+    """
+    now = time.time()
+    if _WEATHER_CACHE["v"] is not None and now - _WEATHER_CACHE["t"] < _WEATHER_TTL_S:
+        return _WEATHER_CACHE["v"]
+    try:
+        w = weather_kma.representative_weather()
+    except Exception:
+        w = None
+    _WEATHER_CACHE.update({"t": now, "v": w})
+    return w
+
+
+def _clean_points(items, prefix, with_n=False, limit=24):
+    """UI가 보낸 지점 목록(출구·작업자 위치)을 검증·정규화한다.
+
+    좌표가 숫자가 아닌 항목은 조용히 버린다(UI 입력을 그대로 신뢰하지 않는다).
+    빈 목록·None 이면 None 을 돌려 호출부가 '입력 없음' 경로(가정값/전 구역)를 타게 한다.
+    """
+    if not isinstance(items, list):
+        return None
+    out = []
+    for k, it in enumerate(items[:limit]):
+        if not isinstance(it, dict):
+            continue
+        try:
+            x, y = float(it["x_m"]), float(it["y_m"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        p = {"id": str(it.get("id") or f"{prefix}{k + 1}")[:24], "x_m": x, "y_m": y}
+        if it.get("name"):
+            p["name"] = str(it["name"])[:40]
+        if with_n:
+            try:
+                npeople = float(it.get("n") or 0)
+                if npeople > 0:
+                    p["n"] = npeople
+            except (TypeError, ValueError):
+                pass
+        out.append(p)
+    return out or None
 
 
 def set_problem_size(n):
@@ -215,7 +268,20 @@ def optimize(req):
     h = float(req.get("site_height_m", 40))
 
     zones = zone_grid(w, h, rows, cols)
-    risk = np.full(len(zones), 0.5)  # 데모: 균일 위험도
+    # 재해 발생원(위치·반경·유형) — PM 지시 2026-07-27. 센서 미연동 상태의 예시 설정값이며,
+    # 지정하지 않으면 기존과 동일하게 균일 위험도(0.5)로 동작한다.
+    # `hazards`(다중, 2026-07-27 확장)를 우선 쓰고 구버전 UI의 `fire`(단일)도 계속 받는다.
+    haz_req = req.get("hazards")
+    if haz_req is None:
+        haz_req = req.get("fire")
+    fire_srcs = fire_scenario.resolve_sources(
+        haz_req if isinstance(haz_req, list) else ([haz_req] if haz_req else []))
+    # 기상: 기본은 D3 관측 대표값(풍향 33.8°·풍속 3.8 m/s). use_weather=false 면 무풍 등방.
+    weather = current_weather() if req.get("use_weather", True) else None
+    risk_list, zone_hz = hx.zone_hazard_risk(
+        [((z["x0"] + z["x1"]) / 2.0, (z["y0"] + z["y1"]) / 2.0) for z in zones],
+        fire_srcs, weather=weather, base=0.5)
+    risk = np.array(risk_list, dtype=float)
     a = coverage_matrix(zones, sensors)
     set_problem_size(n)
     Q, const = build_demo_qubo(a, risk, K)
@@ -255,12 +321,38 @@ def optimize(req):
 
     sel = [s["id"] for s, v in zip(sensors, methods["qaoa"]["x"]) if v]
     expl = explain(a, risk, sensors, methods["qaoa"]["x"], zones, K)
+    # 센서 ↔ 재해 영향값 해설을 센서 카드에 합친다 (PM 1순위 지적 3번)
+    eff = hx.sensor_hazard_effect(sensors, fire_srcs, weather=weather)
+    for it in expl["sensors"]:
+        it["hazard"] = eff.get(it["id"], {})
+    for zi, z in enumerate(expl["zones_info"]):
+        if zi < len(zone_hz):
+            z["hazard_mult"] = zone_hz[zi]["배수"]
+            z["downwind"] = zone_hz[zi]["풍하측"]
+        z["risk"] = round(float(risk[zi]), 3)
+    fire_out = {"active": bool(fire_srcs), "sources": fire_srcs,
+                "설명": fire_scenario.describe(fire_srcs),
+                "zone_risk": [round(float(r), 3) for r in risk]}
+    fire_out.update({"해설": hx.hazard_context(fire_srcs, weather)})
+    # 대피 계획: 출구는 UI 입력값(없으면 격자 모서리 가정), 출발점은 작업자 위치 입력분
+    # (없으면 전 구역). PM 지시 2026-07-27 — "어떤 위치에서 출구까지 어떤 방식이 효과적인가".
+    evac = hx.evacuation_plan(zones, rows, cols, [float(r) for r in risk],
+                              exits=_clean_points(req.get("exits"), "EX"),
+                              origins=_clean_points(req.get("origins"), "W", with_n=True),
+                              hazards=fire_srcs, weather=weather)
     return {"selected_ids": sel, "K": K, "n_candidates": n, "explanation": expl,
-            "zones": {"rows": rows, "cols": cols},
+            "zones": {"rows": rows, "cols": cols}, "fire": fire_out,
+            "weather": hx.wind_context(weather), "evacuation": evac,
             "methods": methods, "time_s": round(time.perf_counter() - t0, 2),
             "warning": warn,
-            "notes": "데모 구성: 균일 격자 구역·균일 위험도(0.5)·균일 비용. "
-                     "실제 파이프라인의 위험 점수·법적 hard 제약·실비용과 다름. 실기 QPU 미사용."}
+            "notes": ("데모 구성: 균일 격자 구역·"
+                      + ("재해 발생원 기준 위험도(예시 설정값, 실측 센서 아님)"
+                         if fire_srcs else "균일 위험도(0.5)")
+                      + ("·기상청 관측 풍향 보정 적용" if (weather and fire_srcs)
+                         else "·기상 보정 미적용(무풍 등방)" if not weather
+                         else "·기상 관측값은 있으나 발생원이 없어 방향 보정 무효")
+                      + "·균일 비용. 실제 파이프라인의 위험 점수·법적 hard 제약·실비용과 다름. "
+                        "실기 QPU 미사용.")}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -288,6 +380,17 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "image/png")
             else:
                 self._send(404, {"error": "데모 도면 없음: " + DEMO_PNG})
+        elif self.path == "/weather":
+            # 풍향·풍속 관측 대표값과 그 의미 해설 (PM 1순위 지적 2번)
+            self._send(200, hx.wind_context(current_weather()))
+        elif self.path == "/fire_presets":
+            # UI 재해 시나리오 선택지 (config/fire_scenarios.json). 센서 연동 전 예시 설정용.
+            cfg = fire_scenario.load_config()
+            self._send(200, {"ui_기본값": cfg.get("ui_기본값", {}),
+                             "presets": {k: {"설명": v.get("설명", ""),
+                                             "sources": v.get("sources", [])}
+                                         for k, v in cfg.get("presets", {}).items()},
+                             "비고": "예시 설정값이며 실측 감지 센서 연동분이 아니다."})
         elif self.path == "/demo_layout":
             out = {"site_width_m": DEMO_SITE_WIDTH_M,
                    "source": "CubiCasa5K plan 5570 (residential_public_dataset — 데모용)",
