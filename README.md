@@ -19,7 +19,8 @@ Quantum Reframing Challenge 2026 · 자유 주제 트랙 · 최종 갱신 2026-0
 | **출구를 입력값으로** | 대피 출구를 이름·좌표로 입력하거나 도면 클릭으로 지정. 미입력 시 격자 모서리로 가정하며 **가정임을 결과에 표기**. 발생원 반경 안 출구는 폐쇄 처리 |
 | **위치별 대피 경로 서술 + 혼잡 분석** | 작업자 위치(인원)를 지정하면 그 지점, 없으면 전 구역에서 출발하는 경로를 계산. 출구 선택 근거·최단거리 방식과의 차이·법정 보행거리 초과·통로 공유 지연(초)·분산 대안을 문장으로 제시 |
 | **UI v0.4** (`src/ui/`) | 다중 재해 목록(유형 혼합·클릭 추가·이동·삭제), 기상 해설 패널, 대피 경로·출구·풍향 화살표 렌더링, 출발 위치별 결과 표 |
-| **회귀 테스트 추가** (`tests/`) | `test_hazard_explain.py` 27건, `test_weather_kma.py` 3건 |
+| **레이어 토글 (가독성)** | 도면 위 요소를 **13개 레이어 체크박스**로 켜고 끈다. 색 칩이 붙어 범례 역할까지 겸하고, 프리셋 버튼(전체/대피만/센서만)과 경로 단일 선택(표 행 클릭)으로 겹침을 줄인다 |
+| **회귀 테스트 추가** (`tests/`) | `test_hazard_explain.py` 27건, `test_weather_kma.py` 3건, `test_ui_layers.mjs`(레이어·필터 헤드리스 검증) |
 
 ---
 
@@ -252,6 +253,7 @@ python src/ui/server.py    # → http://localhost:8788
 4. **기상**: 관측 대표값(풍향·풍속)과 그 의미를 패널에 표시. 체크박스로 보정 on/off
 5. **대피 출구·작업자 위치**: 출구를 이름·좌표로 입력하거나 클릭 지정(미입력 시 격자 모서리로 **가정**). 작업자 위치·인원을 넣으면 그 지점 기준, 없으면 전 구역에서 출발하는 경로를 계산
 6. **최적화 실행**: QUBO + QAOA(로컬 Ideal 또는 IonQ 클라우드 시뮬레이터) → 선택 센서, 센서별 선택/제외 근거와 재해 감지 기여, 출발 위치별 대피 경로 표와 근거, 통로 공유 지연
+7. **레이어 정리**: 도면 위 레이어 13종(도면·구역 격자·위험 히트맵·취약 구역·풍하측·센서 커버리지 원·센서·재해 발생원·풍향 화살표·대피 경로·출구·작업자 위치·라벨)을 체크박스로 켜고 끈다. `전체 켜기 / 대피만 보기 / 센서만 보기` 프리셋과 경로 필터(또는 결과 표의 행 클릭)로 한 경로만 강조할 수 있다. 커버리지 원은 겹침이 심해 **기본 off**다
 
 실기 QPU는 이 서버에서 호출하지 않는다(비용 경로 차단). API 응답: `GET /weather`, `GET /fire_presets`, `GET /demo_layout`, `POST /optimize`.
 
@@ -260,6 +262,7 @@ python src/ui/server.py    # → http://localhost:8788
 ```bash
 python tests/test_hazard_explain.py   # 27건 — 기상 해설·재해 위험도·센서 감지 기여·대피 경로·혼잡
 python tests/test_weather_kma.py      # 3건 — 기상청 응답 헤더 파서(번호형·단일행·헤더 부재 거부)
+node   tests/test_ui_layers.mjs       # UI 레이어 토글·경로 필터 (최소 DOM 셰임에서 draw() 실행)
 ```
 
 ### 4-7. 도면 인테이크 (원본 데이터셋 별도 준비 필요)
@@ -305,7 +308,7 @@ src/
   └─ ui/  index.html, server.py   웹 테스트본 v0.4 (localhost:8788)
 
 config/    fire_scenarios.json  재해 시나리오 프리셋·UI 기본값
-tests/     test_hazard_explain.py(27건), test_weather_kma.py(3건)
+tests/     test_hazard_explain.py(27건), test_weather_kma.py(3건), test_ui_layers.mjs(UI 레이어)
 results/   실험 산출물 (JSON 원본 + 한국어 요약 MD)
 Data/      01~07·12·13 근거 데이터 (대용량·라이선스 제한 원자료 제외)
 docs/      workflow_sensor.md, workflow_part1_risk.md

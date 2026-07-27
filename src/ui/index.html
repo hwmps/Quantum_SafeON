@@ -25,8 +25,16 @@
   .why ul{margin:4px 0 0 14px;padding:0}
   .why li{margin-bottom:3px}
   .lim{font-size:10px;color:#8f8f8f;margin-top:4px;font-style:italic}
-  #legend{font-size:11px;color:#bbb;margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
-  #legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  #layerBar{width:100%;max-width:900px;background:#262b35;border:1px solid #333;border-radius:6px;padding:7px 9px;margin-bottom:8px;font-size:11px}
+  #layerBar .lrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #layerBar .lrow+.lrow{margin-top:6px;padding-top:6px;border-top:1px solid #333}
+  #layerBar b{color:#8ab4f8;font-size:11px;flex-shrink:0}
+  #layerBoxes{display:flex;gap:9px;flex-wrap:wrap;flex:1}
+  label.ck{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:11px;color:#d8d8d8;cursor:pointer;white-space:nowrap;user-select:none}
+  label.ck input{width:auto;margin:0;cursor:pointer}
+  label.ck i{display:inline-block;width:10px;height:10px;border-radius:3px}
+  label.ck.off{color:#6d6d6d}
+  #layerBar select{font-size:11px;padding:2px 4px}
   #optExplain{font-size:11px;line-height:1.55;margin-top:6px}
   #optExplain .sum{background:#1a2b1f;border:1px solid #2e5a3a;border-radius:5px;padding:6px 8px;margin-bottom:6px;color:#bfe8c8}
   #optExplain .sum.warn{background:#2b241a;border-color:#5a4a2e;color:#e8d8b0}
@@ -41,6 +49,7 @@
   table.rt th{background:#2b3140;color:#9fc0f0;text-align:left;padding:3px 5px;border-bottom:1px solid #3a4152}
   table.rt td{padding:3px 5px;border-bottom:1px solid #2d323d;vertical-align:top}
   table.rt tr:hover td{background:#272d38}
+  table.rt tr.rsel{cursor:pointer}
   .sm2{font-size:9.5px;color:#9a9a9a}
   .rcard{border-left:3px solid #3a5a8a;background:#1f242e;border-radius:0 4px 4px 0;padding:5px 8px;margin:5px 0}
 </style>
@@ -166,16 +175,22 @@
   서버 실행 필요: <code>python src/ui/server.py</code></p>
 </div>
 <div id="main">
-  <canvas id="cv" width="900" height="600"></canvas>
-  <div id="legend">
-    <span><i style="background:#1f8f4a"></i>선택된 센서</span>
-    <span><i style="background:#8a8a8a"></i>제외된 센서</span>
-    <span><i style="background:#ff6e28"></i>재해 발생원·영향 반경</span>
-    <span><i style="background:#4fd28a"></i>대피 경로·작업자 위치</span>
-    <span><i style="background:#2f6fd0"></i>출구(입력값)</span>
-    <span><i style="background:#c03a30"></i>취약 구역·사용 불가 출구</span>
-    <span><i style="background:#e0d060"></i>풍향(연기 이동 방향)</span>
+  <div id="layerBar">
+    <div class="lrow">
+      <b>레이어</b>
+      <span id="layerBoxes"></span>
+      <button class="sm" id="lyAll">전체 켜기</button>
+      <button class="sm" id="lyOnlyEvac">대피만 보기</button>
+      <button class="sm" id="lyOnlySensor">센서만 보기</button>
+    </div>
+    <div class="lrow" id="routeRow">
+      <b>대피 경로 표시</b>
+      <select id="routeFilter" style="width:auto;min-width:190px;margin:0"><option value="">전체</option></select>
+      <label class="ck"><input type="checkbox" id="lyDim" checked>선택 외 경로 흐리게</label>
+      <span class="note" id="routeCount"></span>
+    </div>
   </div>
+  <canvas id="cv" width="900" height="600"></canvas>
   <div id="panels">
     <div id="wxWhy" class="why" style="display:none"></div>
     <div id="hzWhy" class="why" style="display:none"></div>
@@ -203,6 +218,63 @@ const pxPerM=()=>cv.width/parseFloat(document.getElementById('siteW').value||60)
 const autoR=()=>parseFloat(document.getElementById('scen').value);
 const rOf=s=>s.r??autoR();
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// --- 레이어 토글 (가독성 개선, 2026-07-27 PM 요청) -------------------------
+// 체크박스가 범례 역할까지 겸한다. spec: [key, 표시명, 색, 기본값]
+const LAYER_SPEC=[
+  ['plan','도면','#dcdcdc',true],
+  ['grid','구역 격자','#9a9a9a',true],
+  ['risk','위험 히트맵','#d86a4a',false],
+  ['weak','취약 구역','#c03a30',true],
+  ['downwind','풍하측 표시','#e0d060',true],
+  ['cov','센서 커버리지 원','#2d78dc',false],
+  ['sensors','센서','#1f8f4a',true],
+  ['hazards','재해 발생원','#ff6e28',true],
+  ['wind','풍향 화살표','#e0d060',true],
+  ['routes','대피 경로','#4fd28a',true],
+  ['exits','출구','#2f6fd0',true],
+  ['workers','작업자 위치','#4fd28a',true],
+  ['labels','라벨·글자','#c8c8c8',true],
+];
+const LY={};LAYER_SPEC.forEach(([k,,,d])=>LY[k]=d);
+function buildLayerBar(){
+  const box=document.getElementById('layerBoxes');
+  box.innerHTML=LAYER_SPEC.map(([k,label,color])=>
+    `<label class="ck" id="ckw_${k}"><input type="checkbox" id="ly_${k}"${LY[k]?' checked':''}>`
+    +`<i style="background:${color}"></i>${label}</label>`).join('');
+  LAYER_SPEC.forEach(([k])=>{
+    document.getElementById('ly_'+k).onchange=e=>{LY[k]=e.target.checked;syncLayerBar();draw();};
+  });
+  syncLayerBar();
+}
+function syncLayerBar(){
+  LAYER_SPEC.forEach(([k])=>{
+    const w=document.getElementById('ckw_'+k),b=document.getElementById('ly_'+k);
+    if(!w||!b)return;b.checked=LY[k];w.className='ck'+(LY[k]?'':' off');
+  });
+}
+function setLayers(on){Object.keys(LY).forEach(k=>LY[k]=on.includes('*')||on.includes(k));syncLayerBar();draw();}
+document.getElementById('lyAll').onclick=()=>setLayers(['*']);
+document.getElementById('lyOnlyEvac').onclick=()=>setLayers(['plan','grid','risk','routes','exits','workers','hazards','labels']);
+document.getElementById('lyOnlySensor').onclick=()=>setLayers(['plan','grid','weak','cov','sensors','hazards','labels']);
+document.getElementById('routeFilter').onchange=draw;
+document.getElementById('lyDim').onchange=draw;
+function pickRoute(id){ // 결과 표의 행을 클릭하면 그 경로만 강조 (같은 행 다시 클릭 = 전체)
+  const sel=document.getElementById('routeFilter');
+  sel.value=(sel.value===id?'':id);
+  if(!LY.routes){LY.routes=true;syncLayerBar();}
+  draw();
+}
+function refreshRouteFilter(){
+  const sel=document.getElementById('routeFilter'),cnt=document.getElementById('routeCount');
+  const prev=sel.value;
+  const rs=(evac&&evac.active&&evac.routes)?evac.routes:[];
+  sel.innerHTML='<option value="">전체'+(rs.length?` (${rs.length}개)`:'')+'</option>'
+    +rs.map(r=>`<option value="${esc(r.origin)}">${esc(r.origin)} → ${esc(r.exit)} · ${r.지표.거리_m} m</option>`).join('');
+  if(rs.some(r=>r.origin===prev))sel.value=prev;
+  cnt.textContent=rs.length>6?'경로가 많으면 하나만 골라 보세요':'';
+  document.getElementById('routeRow').style.display=rs.length?'':'none';
+}
 
 // --- 파일 형식 식별 (UI 테스트 코퍼스 기준: 이미지=미리보기, CAD/BIM=안내 후 복귀, 불명=경고 후 복귀) ---
 const IMG_EXT=['png','jpg','jpeg','bmp','gif','webp','svg'];
@@ -252,7 +324,8 @@ document.getElementById('imgIn').onchange=async e=>{
 function resetResult(){selectedIds=null;zoneInfo=null;evac=null;
   document.getElementById('optExplain').innerHTML='';
   document.getElementById('optResult').innerHTML='';
-  ['hzWhy','evWhy'].forEach(id=>document.getElementById(id).style.display='none');}
+  ['hzWhy','evWhy'].forEach(id=>document.getElementById(id).style.display='none');
+  refreshRouteFilter();}
 
 cv.onclick=e=>{
   const b=cv.getBoundingClientRect(),k=pxPerM();
@@ -397,33 +470,43 @@ document.getElementById('clearBtn').onclick=()=>{sensors=[];resetResult();draw()
 
 function draw(){
   ctx.clearRect(0,0,cv.width,cv.height);
-  if(img)ctx.drawImage(img,0,0,cv.width,cv.height);
-  else{ctx.fillStyle='#f4f4f4';ctx.fillRect(0,0,cv.width,cv.height);
-    ctx.fillStyle='#999';ctx.font='16px sans-serif';ctx.textAlign='center';
-    ctx.fillText('도면 이미지를 업로드한 뒤 클릭하여 센서를 배치하세요',cv.width/2,cv.height/2);}
+  if(img&&LY.plan)ctx.drawImage(img,0,0,cv.width,cv.height);
+  else{ctx.fillStyle=img?'#fbfbfb':'#f4f4f4';ctx.fillRect(0,0,cv.width,cv.height);
+    if(!img){ctx.fillStyle='#999';ctx.font='16px sans-serif';ctx.textAlign='center';
+      ctx.fillText('도면 이미지를 업로드한 뒤 클릭하여 센서를 배치하세요',cv.width/2,cv.height/2);}}
   const k=pxPerM();
-  // 최적화 후: 취약 구역(커버율<30%)을 붉게 표시 + 풍하측 구역 표식
-  if(zoneInfo){
+  // ── 구역 레이어: 위험 히트맵 → 취약 구역 → 격자선 → 풍하측 표식 ──────────
+  if(zoneInfo&&(LY.risk||LY.weak||LY.grid||LY.downwind)){
+    const rmax=Math.max(...zoneInfo.map(z=>z.risk!=null?z.risk:0),0.5)||1;
     ctx.save();
     zoneInfo.forEach(z=>{
       const x=z.x0*k,y=z.y0*k,w=(z.x1-z.x0)*k,hh=(z.y1-z.y0)*k;
-      if(z.cov<WEAK_TAU){
+      if(LY.risk&&z.risk!=null){ // 위험도 비례 붉은 농도 (최대 위험 구역 기준 정규화)
+        const t=Math.max(0,Math.min(1,z.risk/rmax));
+        ctx.fillStyle=`rgba(216,106,74,${(0.06+0.34*t).toFixed(3)})`;ctx.fillRect(x,y,w,hh);
+      }
+      const weak=LY.weak&&z.cov<WEAK_TAU;
+      if(weak){
         ctx.fillStyle='rgba(220,60,50,.13)';ctx.fillRect(x,y,w,hh);
         ctx.strokeStyle='rgba(220,60,50,.55)';ctx.setLineDash([5,4]);ctx.strokeRect(x,y,w,hh);ctx.setLineDash([]);
-        ctx.fillStyle='rgba(190,40,35,.95)';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
-        ctx.fillText(`${z.id} ${(z.cov*100).toFixed(0)}%`,x+4,y+13);
-      }else{
+      }else if(LY.grid){
         ctx.strokeStyle='rgba(120,120,120,.18)';ctx.strokeRect(x,y,w,hh);
       }
-      if(z.downwind){ // 풍하측 구역: 위험 가중이 붙은 구역임을 표시
-        ctx.fillStyle='rgba(224,208,96,.75)';ctx.font='10px sans-serif';ctx.textAlign='right';
+      if(LY.labels){
+        if(weak){ctx.fillStyle='rgba(190,40,35,.95)';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+          ctx.fillText(`${z.id} ${(z.cov*100).toFixed(0)}%`,x+4,y+13);}
+        else if(LY.grid){ctx.fillStyle='rgba(110,110,110,.75)';ctx.font='10px sans-serif';ctx.textAlign='left';
+          ctx.fillText(z.id+(LY.risk&&z.risk!=null?` r=${z.risk}`:''),x+4,y+12);}
+      }
+      if(LY.downwind&&z.downwind&&LY.labels){
+        ctx.fillStyle='rgba(190,170,40,.9)';ctx.font='10px sans-serif';ctx.textAlign='right';
         ctx.fillText('풍하측',x+w-4,y+hh-5);
       }
     });
     ctx.restore();
   }
-  // 재해 발생원 표시 (다중, 예시 설정값) — 반경 원 + 중심 표식
-  if(hzEnabled()){
+  // ── 재해 발생원 (다중, 예시 설정값) + 풍향 화살표 ─────────────────────────
+  if(hzEnabled()&&LY.hazards){
     hazards.forEach((h,i)=>{
       const fx=h.x_m*k,fy=h.y_m*k,fr=Math.max(h.radius_m*k,2);
       const col=KIND_RGB[h.kind]||'255,110,40';
@@ -434,11 +517,10 @@ function draw(){
       ctx.strokeStyle=`rgba(${col},.9)`;ctx.setLineDash([6,4]);ctx.lineWidth=i===hzSel?3:2;ctx.stroke();
       ctx.setLineDash([]);ctx.lineWidth=1;
       ctx.beginPath();ctx.arc(fx,fy,5,0,7);ctx.fillStyle=`rgb(${col})`;ctx.fill();
-      ctx.fillStyle='#b03000';ctx.font='bold 12px sans-serif';ctx.textAlign='left';
-      ctx.fillText(`${h.id} ${KIND_KO[h.kind]} r=${h.radius_m}m`,fx+8,fy-8);
+      if(LY.labels){ctx.fillStyle='#b03000';ctx.font='bold 12px sans-serif';ctx.textAlign='left';
+        ctx.fillText(`${h.id} ${KIND_KO[h.kind]} r=${h.radius_m}m`,fx+8,fy-8);}
       ctx.restore();
-      // 풍하측 확산 방향 화살표 (발생원마다)
-      if(wx&&wx.있음&&document.getElementById('wxOn').checked&&wx.이동_방위_deg!=null){
+      if(LY.wind&&wx&&wx.있음&&document.getElementById('wxOn').checked&&wx.이동_방위_deg!=null){
         const th=wx.이동_방위_deg*Math.PI/180, dx=Math.sin(th), dy=-Math.cos(th); // 화면 y축 하향 보정
         const L=fr+34;
         ctx.save();ctx.strokeStyle='rgba(224,208,96,.95)';ctx.fillStyle='rgba(224,208,96,.95)';ctx.lineWidth=2;
@@ -451,20 +533,25 @@ function draw(){
       }
     });
   }
-  // 대피 경로 (최적화 결과, 출발 위치별) + 출구
+  // ── 대피 경로 (출발 위치별). 필터로 1개만 강조 가능 ───────────────────────
   const ROUTE_COLORS=['79,210,138','120,180,255','240,180,90','220,130,220','130,220,220','240,140,140'];
-  if(evac&&evac.active&&evac.routes){
-    const many=evac.routes.length>6; // 전 구역 자동 계산이면 선을 얇게·연하게
+  const pick=document.getElementById('routeFilter').value;
+  const dim=document.getElementById('lyDim').checked;
+  if(evac&&evac.active&&evac.routes&&LY.routes){
+    const many=evac.routes.length>6&&!pick; // 전 구역 자동 계산이면 얇게·연하게
     evac.routes.forEach((r,ri)=>{
       const pl=r.polyline||[];if(pl.length<2)return;
+      const on=!pick||r.origin===pick;
+      if(!on&&!dim)return;                       // 선택 외 숨기기
       const col=ROUTE_COLORS[ri%ROUTE_COLORS.length];
+      const a=on?(many?0.5:0.95):0.12;           // 선택 외는 흐리게
       ctx.save();
-      ctx.strokeStyle=`rgba(${col},${many?0.5:0.95})`;ctx.lineWidth=many?2:4;ctx.lineJoin='round';
-      ctx.setLineDash(many?[6,5]:[10,6]);
+      ctx.strokeStyle=`rgba(${col},${a})`;ctx.lineWidth=on?(many?2:4):1.5;ctx.lineJoin='round';
+      ctx.setLineDash(many&&on?[6,5]:on?[10,6]:[4,4]);
       ctx.beginPath();
       pl.forEach((p,i)=>i?ctx.lineTo(p.x_m*k,p.y_m*k):ctx.moveTo(p.x_m*k,p.y_m*k));
       ctx.stroke();ctx.setLineDash([]);
-      if(!many){ // 진행 방향 화살촉 (경로가 적을 때만)
+      if(on&&!many){ // 진행 방향 화살촉
         for(let i=1;i<pl.length;i++){
           const x1=pl[i-1].x_m*k,y1=pl[i-1].y_m*k,x2=pl[i].x_m*k,y2=pl[i].y_m*k;
           const ph=Math.atan2(y2-y1,x2-x1),mx=(x1+x2)/2,my=(y1+y2)/2;
@@ -474,36 +561,46 @@ function draw(){
           ctx.closePath();ctx.fill();
         }
       }
-      const s=pl[0];
-      ctx.beginPath();ctx.arc(s.x_m*k,s.y_m*k,many?3:6,0,7);ctx.fillStyle=`rgb(${col})`;ctx.fill();
-      if(!many){ctx.fillStyle='#14603a';ctx.font='bold 12px sans-serif';ctx.textAlign='left';
-        ctx.fillText(`${r.origin}${r.n?`(${r.n}명)`:''} → ${r.exit}`,s.x_m*k+9,s.y_m*k+16);}
+      if(LY.workers){ // 출발 지점 표식
+        const s=pl[0];
+        ctx.beginPath();ctx.arc(s.x_m*k,s.y_m*k,on?(many?3:6):2.5,0,7);
+        ctx.fillStyle=on?`rgb(${col})`:`rgba(${col},.35)`;ctx.fill();
+        if(on&&!many&&LY.labels){ctx.fillStyle='#14603a';ctx.font='bold 12px sans-serif';ctx.textAlign='left';
+          ctx.fillText(`${r.origin}${r.n?`(${r.n}명)`:''} → ${r.exit}`,s.x_m*k+9,s.y_m*k+16);}
+      }
       ctx.restore();
     });
   }
-  // 출구 표식: 최적화 결과가 있으면 서버 판정(폐쇄 여부) 기준, 없으면 입력값 그대로
-  const exDraw=(evac&&evac.active&&evac.exits)?evac.exits
-    :exitsIn.map(e=>({id:e.id,x_m:e.x_m,y_m:e.y_m,usable:true}));
-  const usedExits=(evac&&evac.active&&evac.routes)?evac.routes.map(r=>r.exit):[];
-  exDraw.forEach(e=>{
-    const x=e.x_m*k,y=e.y_m*k;
-    ctx.save();
-    ctx.fillStyle=e.usable?'rgba(47,111,208,.9)':'rgba(192,58,48,.9)';
-    ctx.beginPath();ctx.rect(x-7,y-7,14,14);ctx.fill();
-    ctx.fillStyle=e.usable?'#1d4f9b':'#8c1f18';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
-    ctx.fillText(`${e.id}${!e.usable?' 폐쇄':(usedExits.includes(e.id)?' ✓':'')}`,x,y-11);
-    ctx.restore();
-  });
-  // 작업자 위치 입력 표식 (최적화 전에도 보이게)
-  if(!(evac&&evac.active)){
+  // ── 출구: 최적화 결과가 있으면 서버 판정(폐쇄 여부) 기준, 없으면 입력값 ───
+  if(LY.exits){
+    const exDraw=(evac&&evac.active&&evac.exits)?evac.exits
+      :exitsIn.map(e=>({id:e.id,x_m:e.x_m,y_m:e.y_m,usable:true}));
+    const usedExits=(evac&&evac.active&&evac.routes)
+      ?evac.routes.filter(r=>!pick||r.origin===pick).map(r=>r.exit):[];
+    exDraw.forEach(e=>{
+      const x=e.x_m*k,y=e.y_m*k;
+      ctx.save();
+      ctx.fillStyle=e.usable?'rgba(47,111,208,.9)':'rgba(192,58,48,.9)';
+      ctx.beginPath();ctx.rect(x-7,y-7,14,14);ctx.fill();
+      if(LY.labels){
+        ctx.fillStyle=e.usable?'#1d4f9b':'#8c1f18';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+        ctx.fillText(`${e.id}${!e.usable?' 폐쇄':(usedExits.includes(e.id)?' ✓':'')}`,x,y-11);
+      }
+      ctx.restore();
+    });
+  }
+  // ── 작업자 위치 입력 표식 (최적화 전에도 보이게) ──────────────────────────
+  if(LY.workers&&!(evac&&evac.active)){
     originsIn.forEach(o=>{
       const x=o.x_m*k,y=o.y_m*k;
       ctx.save();ctx.fillStyle='rgba(79,210,138,.9)';
       ctx.beginPath();ctx.arc(x,y,6,0,7);ctx.fill();
-      ctx.fillStyle='#14603a';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
-      ctx.fillText(`${o.id}${o.n?`(${o.n}명)`:''}`,x+9,y+4);ctx.restore();
+      if(LY.labels){ctx.fillStyle='#14603a';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+        ctx.fillText(`${o.id}${o.n?`(${o.n}명)`:''}`,x+9,y+4);}
+      ctx.restore();
     });
   }
+  // ── 센서: 커버리지 원과 점·라벨을 따로 토글 ───────────────────────────────
   sensors.forEach((s,i)=>{
     const x=s.xm*k,y=s.ym*k,rp=rOf(s)*k;
     const id='S'+(i+1);
@@ -511,11 +608,15 @@ function draw(){
     const fill=sel===null?'rgba(45,120,220,.18)':sel?'rgba(40,170,80,.25)':'rgba(120,120,120,.10)';
     const stroke=sel===null?'rgba(45,120,220,.7)':sel?'rgba(40,170,80,.9)':'rgba(120,120,120,.4)';
     const dot=sel===null?'#d43f3f':sel?'#1f8f4a':'#8a8a8a';
-    ctx.beginPath();ctx.arc(x,y,rp,0,7);ctx.fillStyle=fill;ctx.fill();
-    ctx.strokeStyle=stroke;ctx.stroke();
-    ctx.beginPath();ctx.arc(x,y,sel?5:4,0,7);ctx.fillStyle=dot;ctx.fill();
-    ctx.fillStyle='#222';ctx.font=(sel?'bold ':'')+'11px sans-serif';ctx.textAlign='left';
-    ctx.fillText(id+(sel?' ✓':''),x+6,y-6);
+    if(LY.cov){
+      ctx.beginPath();ctx.arc(x,y,rp,0,7);ctx.fillStyle=fill;ctx.fill();
+      ctx.strokeStyle=stroke;ctx.stroke();
+    }
+    if(LY.sensors){
+      ctx.beginPath();ctx.arc(x,y,sel?5:4,0,7);ctx.fillStyle=dot;ctx.fill();
+      if(LY.labels){ctx.fillStyle='#222';ctx.font=(sel?'bold ':'')+'11px sans-serif';ctx.textAlign='left';
+        ctx.fillText(id+(sel?' ✓':''),x+6,y-6);}
+    }
   });
   const L=document.getElementById('list');
   L.innerHTML=sensors.map((s,i)=>`<div class="row"><b>S${i+1}</b> (${s.xm}, ${s.ym}) m · r=${rOf(s)}m${s.r==null?'(자동)':''} <span class="del" onclick="delS(${i})">✕</span></div>`).join('');
@@ -556,7 +657,7 @@ document.getElementById('optBtn').onclick=async()=>{
     if(d.error){msg.textContent='⚠ '+d.error;msg.style.color='#f0b060';return;}
     selectedIds=d.selected_ids;zoneInfo=d.explanation?d.explanation.zones_info:null;
     evac=d.evacuation||null;if(d.weather)wx=d.weather;
-    wxRender();draw();
+    refreshRouteFilter();wxRender();draw();
     const q=d.methods.qaoa,ex=d.methods.exact;
     msg.textContent=`✓ 완료 (${d.time_s}s)`+(d.warning?` — ${d.warning}`:'');msg.style.color=d.warning?'#f0b060':'#7fc97f';
     res.innerHTML=`<b>선택된 센서 (${d.selected_ids.length}/${d.n_candidates})</b>: ${d.selected_ids.join(', ')}<br>`+
@@ -593,7 +694,8 @@ document.getElementById('optBtn').onclick=async()=>{
       const show=rs.slice(0,many?12:rs.length);
       h+=`<table class="rt"><tr><th>출발</th><th>구역</th><th>출구</th><th>경로</th>`
         +`<th>거리 m</th><th>소요 s</th><th>위험노출</th><th>법정</th></tr>`
-        +show.map(r=>`<tr><td>${esc(r.origin)}${r.n?`<br><span class="sm2">${r.n}명</span>`:''}</td>`
+        +show.map(r=>`<tr class="rsel" onclick="pickRoute('${esc(r.origin)}')" title="클릭하면 이 경로만 도면에 강조">`
+          +`<td>${esc(r.origin)}${r.n?`<br><span class="sm2">${r.n}명</span>`:''}</td>`
           +`<td>${esc(r.origin_zone)}</td><td><b>${esc(r.exit)}</b></td>`
           +`<td class="sm2">${esc(r.path_zone_ids.join('→'))}</td>`
           +`<td>${r.지표.거리_m}</td><td>${r.지표.예상_소요_s}</td><td>${r.지표.위험노출}</td>`
@@ -655,6 +757,8 @@ async function loadDemo(){
     im.src=API+'/demo_plan.png';
   }catch(e){/* 서버 미실행 — 기본 안내 화면 유지 */}
 }
+buildLayerBar();
+refreshRouteFilter();
 renderHz();
 renderEv();
 loadDemo();
