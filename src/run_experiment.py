@@ -77,7 +77,9 @@ def main():
     candidates = dl.load_candidates()
     incidents = dl.load_incidents()
     costs, radii = dl.load_sensor_costs()
-    weather = weather_kma.load_cached_weather()  # 캐시 없으면 None → 보정 없이 실행
+    # D3 시계열이 있으면 보수적 대표값(풍속 90퍼센타일·최다 풍향), 없으면 단일시각 캐시,
+    # 둘 다 없으면 None → 기상 보정 없이 실행 (2026-07-27 PM 지시로 대표값 경로 추가)
+    weather = weather_kma.representative_weather()
 
     out = {
         "meta": {

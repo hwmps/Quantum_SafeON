@@ -32,3 +32,11 @@ results/*_무보정*
 Thumbs.db
 .vscode/
 .idea/
+
+# 2026-07-27 추가 — 제3자 데이터셋 파생물·대용량 사이드카 미포함
+Data/11_ml_labels_*/
+Data/13_weather_timeseries_*/_work/
+Data/13_weather_timeseries_*/_renders/
+*.inspect.ndjson
+results/structured3d_*
+results/ui_corpus_intake_report.json

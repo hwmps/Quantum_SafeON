@@ -4,10 +4,11 @@
     "K_sensors": 6,
     "hard_tau": 0.27,
     "weather": {
-      "tm": "202607262000",
+      "tm": "202607270900",
       "stn": "108",
-      "wd_deg": 27.0,
-      "ws_ms": 1.8
+      "wd_deg": 23.0,
+      "ws_ms": 2.3,
+      "출처": "단일시각 관측 캐시 (시계열 미확보 — 대표성 한계 있음)"
     },
     "data_status": "레이아웃/후보점 synthetic, 반경은 민감도 가정값, 비용은 공개 장비가만",
     "coverage_source": "Data/01_layout/coverage_matrix_fractional_excel_utf8.csv (부분면적 v1, 합성 파생: 원∩사각형 면적비, 벽·공조 미반영)",
@@ -33,23 +34,23 @@
           "Z10"
         ],
         "hard_tau": 0.27,
-        "lam_K": 0.45716154140092097,
+        "lam_K": 0.46129909492021565,
         "hard_truncated_zones": [],
         "hard_relaxed_zones": []
       },
       "risk_scores": {
-        "Z01": 0.461,
-        "Z02": 0.461,
-        "Z03": 1.0,
-        "Z04": 0.9904,
-        "Z05": 0.7979,
+        "Z01": 0.4649,
+        "Z02": 0.4649,
+        "Z03": 0.9027,
+        "Z04": 1.0,
+        "Z05": 0.8054,
         "Z06": 0.1,
-        "Z07": 0.3406,
-        "Z08": 0.5332,
-        "Z09": 0.55,
-        "Z10": 0.1481,
-        "Z11": 0.2396,
-        "Z12": 0.2925
+        "Z07": 0.3432,
+        "Z08": 0.5378,
+        "Z09": 0.4892,
+        "Z10": 0.1486,
+        "Z11": 0.2411,
+        "Z12": 0.2946
       },
       "baselines": [
         {
@@ -68,11 +69,11 @@
             0,
             0
           ],
-          "energy": -0.5892920612833663,
-          "time_s": 0.0011,
+          "energy": -0.5802790934267321,
+          "time_s": 0.0013,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.1947,
+            "weighted_coverage": 0.1973,
             "zones_covered": 6,
             "total_cost_krw": 6166748,
             "hard_constraints_ok": true
@@ -95,16 +96,16 @@
             0,
             0
           ],
-          "energy": -0.5892920612833592,
-          "time_s": 0.0006,
+          "energy": -0.5802790934267357,
+          "time_s": 0.0005,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.1947,
+            "weighted_coverage": 0.1973,
             "zones_covered": 6,
             "total_cost_krw": 6166748,
             "hard_constraints_ok": true
           },
-          "gap_to_exact": 0.0
+          "gap_to_exact": -0.0
         },
         {
           "method": "SimulatedAnnealing",
@@ -122,16 +123,16 @@
             0,
             0
           ],
-          "energy": -0.5892920612833592,
-          "time_s": 0.2175,
+          "energy": -0.5802790934267357,
+          "time_s": 0.2431,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.1947,
+            "weighted_coverage": 0.1973,
             "zones_covered": 6,
             "total_cost_krw": 6166748,
             "hard_constraints_ok": true
           },
-          "gap_to_exact": 0.0
+          "gap_to_exact": -0.0
         },
         {
           "method": "Random(best of 4096)",
@@ -149,32 +150,32 @@
             0,
             0
           ],
-          "energy": -0.5892920612833592,
-          "time_s": 0.0479,
+          "energy": -0.5802790934267357,
+          "time_s": 0.0545,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.1947,
+            "weighted_coverage": 0.1973,
             "zones_covered": 6,
             "total_cost_krw": 6166748,
             "hard_constraints_ok": true
           },
-          "gap_to_exact": 0.0
+          "gap_to_exact": -0.0
         }
       ],
       "qaoa_ideal": [
         {
           "p": 1,
           "params": [
-            1.2396638432548093,
-            2.7751650724428663
+            1.238397316003359,
+            2.7772457375515116
           ],
-          "expected_energy": 2.599093526616551,
-          "approx_ratio": 0.8776,
-          "prob_optimal": 0.001409,
-          "prob_optimal_vs_uniform": 5.77,
-          "time_s": 0.24,
+          "expected_energy": 2.6225638123393487,
+          "approx_ratio": 0.8777,
+          "prob_optimal": 0.001403,
+          "prob_optimal_vs_uniform": 5.75,
+          "time_s": 0.23,
           "shots": 2048,
-          "best_sampled_energy": -0.5892920612833663,
+          "best_sampled_energy": -0.5802790934267321,
           "best_sampled_x": [
             0,
             0,
@@ -192,7 +193,7 @@
           "sampled_optimal_found": true,
           "best_sampled_true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.1947,
+            "weighted_coverage": 0.1973,
             "zones_covered": 6,
             "total_cost_krw": 6166748,
             "hard_constraints_ok": true
@@ -202,18 +203,18 @@
         {
           "p": 2,
           "params": [
-            1.214299616042072,
-            1.5458024889501707,
-            4.345811914291099,
-            1.5924208072634158
+            1.154451594825734,
+            4.594866126188952,
+            4.341065454109458,
+            1.3437569449757762
           ],
-          "expected_energy": 2.5882339211264838,
-          "approx_ratio": 0.878,
-          "prob_optimal": 0.001326,
-          "prob_optimal_vs_uniform": 5.43,
-          "time_s": 0.62,
+          "expected_energy": 1.6920006028377548,
+          "approx_ratio": 0.9132,
+          "prob_optimal": 0.004048,
+          "prob_optimal_vs_uniform": 16.58,
+          "time_s": 0.71,
           "shots": 2048,
-          "best_sampled_energy": -0.5892920612833663,
+          "best_sampled_energy": -0.5802790934267321,
           "best_sampled_x": [
             0,
             0,
@@ -231,7 +232,7 @@
           "sampled_optimal_found": true,
           "best_sampled_true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.1947,
+            "weighted_coverage": 0.1973,
             "zones_covered": 6,
             "total_cost_krw": 6166748,
             "hard_constraints_ok": true
@@ -278,23 +279,23 @@
           "Z10"
         ],
         "hard_tau": 0.27,
-        "lam_K": 1.2120143117488287,
+        "lam_K": 1.2252858618572258,
         "hard_truncated_zones": [],
         "hard_relaxed_zones": []
       },
       "risk_scores": {
-        "Z01": 0.461,
-        "Z02": 0.461,
-        "Z03": 1.0,
-        "Z04": 0.9904,
-        "Z05": 0.7979,
+        "Z01": 0.4649,
+        "Z02": 0.4649,
+        "Z03": 0.9027,
+        "Z04": 1.0,
+        "Z05": 0.8054,
         "Z06": 0.1,
-        "Z07": 0.3406,
-        "Z08": 0.5332,
-        "Z09": 0.55,
-        "Z10": 0.1481,
-        "Z11": 0.2396,
-        "Z12": 0.2925
+        "Z07": 0.3432,
+        "Z08": 0.5378,
+        "Z09": 0.4892,
+        "Z10": 0.1486,
+        "Z11": 0.2411,
+        "Z12": 0.2946
       },
       "baselines": [
         {
@@ -313,11 +314,11 @@
             0,
             0
           ],
-          "energy": -2.361309671435855,
-          "time_s": 0.001,
+          "energy": -2.29699800273373,
+          "time_s": 0.0012,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.5105,
+            "weighted_coverage": 0.5102,
             "zones_covered": 6,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
@@ -340,16 +341,16 @@
             0,
             0
           ],
-          "energy": -2.361309671435862,
+          "energy": -2.29699800273373,
           "time_s": 0.0004,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.5105,
+            "weighted_coverage": 0.5102,
             "zones_covered": 6,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
           },
-          "gap_to_exact": -0.0
+          "gap_to_exact": 0.0
         },
         {
           "method": "SimulatedAnnealing",
@@ -367,16 +368,16 @@
             0,
             0
           ],
-          "energy": -2.361309671435862,
-          "time_s": 0.1894,
+          "energy": -2.29699800273373,
+          "time_s": 0.2125,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.5105,
+            "weighted_coverage": 0.5102,
             "zones_covered": 6,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
           },
-          "gap_to_exact": -0.0
+          "gap_to_exact": 0.0
         },
         {
           "method": "Random(best of 4096)",
@@ -394,32 +395,32 @@
             0,
             0
           ],
-          "energy": -2.361309671435862,
-          "time_s": 0.0513,
+          "energy": -2.29699800273373,
+          "time_s": 0.0433,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.5105,
+            "weighted_coverage": 0.5102,
             "zones_covered": 6,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
           },
-          "gap_to_exact": -0.0
+          "gap_to_exact": 0.0
         }
       ],
       "qaoa_ideal": [
         {
           "p": 1,
           "params": [
-            1.0155248115052633,
-            2.905700156532366
+            1.0139057500844078,
+            2.906208103988562
           ],
-          "expected_energy": 2.7547064704751123,
-          "approx_ratio": 0.907,
-          "prob_optimal": 0.000928,
-          "prob_optimal_vs_uniform": 3.8,
-          "time_s": 0.23,
+          "expected_energy": 2.7958592843066423,
+          "approx_ratio": 0.9081,
+          "prob_optimal": 0.000922,
+          "prob_optimal_vs_uniform": 3.78,
+          "time_s": 0.24,
           "shots": 2048,
-          "best_sampled_energy": -2.361309671435855,
+          "best_sampled_energy": -2.29699800273373,
           "best_sampled_x": [
             0,
             0,
@@ -437,7 +438,7 @@
           "sampled_optimal_found": true,
           "best_sampled_true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.5105,
+            "weighted_coverage": 0.5102,
             "zones_covered": 6,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
@@ -447,46 +448,46 @@
         {
           "p": 2,
           "params": [
-            1.672989561146004,
-            0.866185266989995,
-            2.873058936467144,
-            1.7760596132961917
+            1.6532661601223633,
+            0.8698477276330144,
+            2.875773705148082,
+            1.768976414195047
           ],
-          "expected_energy": 4.473640665071925,
-          "approx_ratio": 0.8757,
-          "prob_optimal": 0.000503,
-          "prob_optimal_vs_uniform": 2.06,
-          "time_s": 0.75,
+          "expected_energy": 4.511635254433282,
+          "approx_ratio": 0.8771,
+          "prob_optimal": 0.00049,
+          "prob_optimal_vs_uniform": 2.01,
+          "time_s": 0.64,
           "shots": 2048,
-          "best_sampled_energy": -2.2364880072647253,
+          "best_sampled_energy": -2.29699800273373,
           "best_sampled_x": [
             0,
             0,
-            0,
-            1,
-            1,
-            0,
-            0,
             1,
             1,
             1,
             0,
-            1
+            0,
+            1,
+            1,
+            1,
+            0,
+            0
           ],
-          "sampled_optimal_found": false,
+          "sampled_optimal_found": true,
           "best_sampled_true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.4894,
+            "weighted_coverage": 0.5102,
             "zones_covered": 6,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
           },
-          "best_sampled_gap_to_exact": 0.124822
+          "best_sampled_gap_to_exact": 0.0
         }
       ],
       "validation": {
         "qaoa_p1_found_exact": true,
-        "qaoa_p2_found_exact": false,
+        "qaoa_p2_found_exact": true,
         "exact_solution_x": [
           0,
           0,
@@ -523,23 +524,23 @@
           "Z10"
         ],
         "hard_tau": 0.27,
-        "lam_K": 1.5955100187007003,
+        "lam_K": 1.6123808023977664,
         "hard_truncated_zones": [],
         "hard_relaxed_zones": []
       },
       "risk_scores": {
-        "Z01": 0.461,
-        "Z02": 0.461,
-        "Z03": 1.0,
-        "Z04": 0.9904,
-        "Z05": 0.7979,
+        "Z01": 0.4649,
+        "Z02": 0.4649,
+        "Z03": 0.9027,
+        "Z04": 1.0,
+        "Z05": 0.8054,
         "Z06": 0.1,
-        "Z07": 0.3406,
-        "Z08": 0.5332,
-        "Z09": 0.55,
-        "Z10": 0.1481,
-        "Z11": 0.2396,
-        "Z12": 0.2925
+        "Z07": 0.3432,
+        "Z08": 0.5378,
+        "Z09": 0.4892,
+        "Z10": 0.1486,
+        "Z11": 0.2411,
+        "Z12": 0.2946
       },
       "baselines": [
         {
@@ -558,11 +559,11 @@
             0,
             0
           ],
-          "energy": -3.4139803324832627,
-          "time_s": 0.0011,
+          "energy": -3.289305734114535,
+          "time_s": 0.001,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.6895,
+            "weighted_coverage": 0.6823,
             "zones_covered": 10,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
@@ -585,11 +586,11 @@
             0,
             0
           ],
-          "energy": -3.4139803324832627,
+          "energy": -3.289305734114521,
           "time_s": 0.0004,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.6895,
+            "weighted_coverage": 0.6823,
             "zones_covered": 10,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
@@ -612,11 +613,11 @@
             0,
             0
           ],
-          "energy": -3.4139803324832627,
-          "time_s": 0.1933,
+          "energy": -3.289305734114521,
+          "time_s": 0.2445,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.6895,
+            "weighted_coverage": 0.6823,
             "zones_covered": 10,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
@@ -639,11 +640,11 @@
             0,
             0
           ],
-          "energy": -3.4139803324832627,
-          "time_s": 0.0523,
+          "energy": -3.289305734114521,
+          "time_s": 0.0435,
           "true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.6895,
+            "weighted_coverage": 0.6823,
             "zones_covered": 10,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
@@ -655,24 +656,24 @@
         {
           "p": 1,
           "params": [
-            0.9741044988004175,
-            2.9178716858836484
+            0.9729413172831639,
+            2.9181803597779177
           ],
-          "expected_energy": 2.1626433683324127,
-          "approx_ratio": 0.9202,
-          "prob_optimal": 0.00085,
-          "prob_optimal_vs_uniform": 3.48,
-          "time_s": 0.23,
+          "expected_energy": 2.239742399053257,
+          "approx_ratio": 0.9214,
+          "prob_optimal": 0.000845,
+          "prob_optimal_vs_uniform": 3.46,
+          "time_s": 0.24,
           "shots": 2048,
-          "best_sampled_energy": -3.286762200491296,
+          "best_sampled_energy": -3.2293413134830615,
           "best_sampled_x": [
             0,
+            1,
+            1,
+            1,
+            1,
             0,
-            1,
-            1,
-            1,
             0,
-            1,
             1,
             0,
             1,
@@ -682,28 +683,28 @@
           "sampled_optimal_found": false,
           "best_sampled_true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.6673,
-            "zones_covered": 11,
+            "weighted_coverage": 0.6714,
+            "zones_covered": 10,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true
           },
-          "best_sampled_gap_to_exact": 0.127218
+          "best_sampled_gap_to_exact": 0.059964
         },
         {
           "p": 2,
           "params": [
-            0.8943867899955817,
-            4.2908084277972485,
-            2.943127755019537,
-            1.5224068827817758
+            0.8947793056551434,
+            4.298669162894187,
+            2.942641076051168,
+            1.5218723042164441
           ],
-          "expected_energy": 3.5742514662748888,
-          "approx_ratio": 0.9,
-          "prob_optimal": 0.000425,
-          "prob_optimal_vs_uniform": 1.74,
-          "time_s": 0.63,
+          "expected_energy": 3.631159551435398,
+          "approx_ratio": 0.9016,
+          "prob_optimal": 0.000434,
+          "prob_optimal_vs_uniform": 1.78,
+          "time_s": 0.73,
           "shots": 2048,
-          "best_sampled_energy": -3.4139803324832627,
+          "best_sampled_energy": -3.289305734114535,
           "best_sampled_x": [
             0,
             0,
@@ -721,7 +722,7 @@
           "sampled_optimal_found": true,
           "best_sampled_true_metrics": {
             "n_sensors": 6,
-            "weighted_coverage": 0.6895,
+            "weighted_coverage": 0.6823,
             "zones_covered": 10,
             "total_cost_krw": 7216748,
             "hard_constraints_ok": true

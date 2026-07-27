@@ -1,0 +1,5893 @@
+{
+  "meta": {
+    "problem": "반도체 건설현장 대피 경로 최적화 (QUBO, 변수 12 = 작업조 4 × 후보경로 3)",
+    "part": "파트 2-B (워크플로우_파트1_위험인자.md), 결합 A",
+    "source_zone": "Z04",
+    "group_origins": [
+      {
+        "id": "W1",
+        "origin": "Z01",
+        "desc": "클린룸 시공 서측 작업조"
+      },
+      {
+        "id": "W2",
+        "origin": "Z03",
+        "desc": "서브팹·유틸리티 작업조"
+      },
+      {
+        "id": "W3",
+        "origin": "Z06",
+        "desc": "용접·화기 작업조"
+      },
+      {
+        "id": "W4",
+        "origin": "Z09",
+        "desc": "팬데크·공조 작업조"
+      }
+    ],
+    "worker_scenarios": [
+      {
+        "id": "D6-SYN-002",
+        "name": "중형 데모 24명",
+        "total": 24
+      },
+      {
+        "id": "D6-SYN-003",
+        "name": "확장성 분석 60명",
+        "total": 60
+      },
+      {
+        "id": "파생-320",
+        "name": "혼잡 지배 구간 320명(파생 가정)",
+        "total": 320,
+        "note": "교차점 분석에서 독립 최단경로가 최적이 아니게 되는 구간. D6-SYN 표에 없는 파생 가정치이며, 현장 전체 인원(D6-WF-001 4,200명·D6-WF-002 6,000명)의 한 대피 섹터 규모로 해석한다. 실측 아님."
+      }
+    ],
+    "scenario_basis": "D6-SYN-002(24명)·D6-SYN-003(60명) 합성 시나리오를 4개 작업조로 균등 분할 — 실제 구역별 동시인원 실측 아님",
+    "weather_observed": {
+      "tm": "202607262000",
+      "stn": "108",
+      "wd_deg": 27.0,
+      "ws_ms": 1.8
+    },
+    "graph_meta": {
+      "edge_length_def": "구역 중심 간 직선거리 (2D 근사, 실제 통행 경로장 아님)",
+      "width_basis": "복도 D1-LAW-009(1.5m)/D1-LAW-010(1.2m), 비상구 접속 D1-LAW-012(0.9m), 하역장 개구부 3.0m(모델링 가정·실측 아님)",
+      "capacity_basis": "D2-FLOW-004 1.3 persons/(m·s) × 유효폭(D2-FLOW-005 편측 0.15m 차감)",
+      "exit_note": "출구 2개소 — Z12는 레이아웃 근거, EX2는 D1-LAW-005(직통계단 2개소 이상) 충족을 위한 합성 노드",
+      "limitation": "벽 차폐·문 위치·층고·계단 미반영. 실제 도면 좌표가 아니라 합성 레이아웃."
+    },
+    "evidence_constants": {
+      "walk_distance_limit_m": 30.0,
+      "corridor_width_main_m": 1.5,
+      "corridor_width_other_m": 1.2,
+      "min_exits": 2.0,
+      "free_speed_ms": 1.19,
+      "density_valid_lo": 0.54,
+      "density_speed_b": 0.37,
+      "max_specific_flow": 1.3,
+      "boundary_layer_m": 0.15,
+      "density_speed_a": 1.4,
+      "density_valid_hi": 3.8
+    },
+    "evidence_sources": {
+      "walk_distance_limit_m": {
+        "record_id": "D1-LAW-001",
+        "name": "거실 각 부분에서 가장 가까운 직통계단",
+        "unit": "m",
+        "source": "국가법령정보센터",
+        "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?lsJoLnkSeq=1030364087"
+      },
+      "corridor_width_main_m": {
+        "record_id": "D1-LAW-009",
+        "name": "거실 양옆 복도",
+        "unit": "m 이상",
+        "source": "국가법령정보센터",
+        "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=124056"
+      },
+      "corridor_width_other_m": {
+        "record_id": "D1-LAW-010",
+        "name": "기타 복도",
+        "unit": "m 이상",
+        "source": "국가법령정보센터",
+        "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=124056"
+      },
+      "min_exits": {
+        "record_id": "D1-LAW-005",
+        "name": "기타 용도 3층 이상 직통계단",
+        "unit": "개소 이상",
+        "source": "국가법령정보센터",
+        "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?ancYnChk=&chrClsCd=010202&lsJoLnkSeq=1020322083"
+      },
+      "free_speed_ms": {
+        "record_id": "D2-FLOW-001",
+        "name": "평지 비방해 보행속도 평균",
+        "unit": "m/s",
+        "source": "NIST Technical Note 1471",
+        "url": "https://www.govinfo.gov/content/pkg/GOVPUB-C13-766939ace381567239fd038ddfbfb48c/pdf/GOVPUB-C13-766939ace381567239fd038ddfbfb48c.pdf"
+      },
+      "density_valid_lo": {
+        "record_id": "D2-FLOW-002",
+        "name": "밀도-속도 관계 적용 하한",
+        "unit": "persons/m²",
+        "source": "Gwynne et al., Fire Safety Journal 44 (2009)",
+        "url": "https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=861412"
+      },
+      "density_speed_b": {
+        "record_id": "D2-FLOW-003",
+        "name": "밀도-속도 관계 기울기",
+        "unit": "(m/s)/(persons/m²)",
+        "source": "Gwynne et al., Fire Safety Journal 44 (2009)",
+        "url": "https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=861412"
+      },
+      "max_specific_flow": {
+        "record_id": "D2-FLOW-004",
+        "name": "문·복도 최대 단위폭 유동률",
+        "unit": "persons/(m·s)",
+        "source": "Gwynne et al., Fire Safety Journal 44 (2009)",
+        "url": "https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=861412"
+      },
+      "boundary_layer_m": {
+        "record_id": "D2-FLOW-005",
+        "name": "문·계단 측벽 유효폭 차감",
+        "unit": "m/side",
+        "source": "NIST Movement on Stairs During Building Evacuations",
+        "url": "https://www.govinfo.gov/content/pkg/GOVPUB-C13-298e06c11b9bada650cecff1a85d2131/pdf/GOVPUB-C13-298e06c11b9bada650cecff1a85d2131.pdf"
+      }
+    },
+    "evidence_meta": {
+      "origin": "Data/12_evacuation_evidence_20260727 (Codex 정본, 2026-07-27)",
+      "fallback_used": [],
+      "note": "현장인원 공개값은 전체 현장 일일 인원이므로 구역 동시밀도로 사용 금지. 대피 실험의 작업자 수는 합성 시나리오(D6-SYN-*)를 사용한다."
+    },
+    "gas_reference": [
+      {
+        "name": "수소",
+        "formula": "H2",
+        "relative_density_air": 0.0696,
+        "detector_height": "잠재 누출원 인근 천장 아래 약 30cm를 우선 검토",
+        "source": "NIST Chemistry WebBook + Honeywell E3Point manual"
+      },
+      {
+        "name": "실란",
+        "formula": "SiH4",
+        "relative_density_air": 1.11,
+        "detector_height": "누출원·배기 흐름 중심으로 배치하고 저부만 고정하지 않음",
+        "source": "CDC/NIOSH Pocket Guide - Silicon tetrahydride"
+      },
+      {
+        "name": "일산화탄소",
+        "formula": "CO",
+        "relative_density_air": 0.97,
+        "detector_height": "바닥에서 1~1.5m 호흡대",
+        "source": "CDC/NIOSH Method 6604 + Honeywell E3Point manual"
+      },
+      {
+        "name": "암모니아",
+        "formula": "NH3",
+        "relative_density_air": 0.6,
+        "detector_height": "고부 설치를 우선 검토",
+        "source": "CDC/NIOSH Pocket Guide - Ammonia + Honeywell Gas Book"
+      },
+      {
+        "name": "황화수소",
+        "formula": "H2S",
+        "relative_density_air": 1.19,
+        "detector_height": "바닥에서 약 30cm",
+        "source": "CDC/NIOSH Pocket Guide - Hydrogen sulfide + Honeywell E3Point manual"
+      }
+    ],
+    "route_candidates": {
+      "W1": [
+        {
+          "path": [
+            "Z01",
+            "EX2"
+          ],
+          "len_m": 11.0
+        },
+        {
+          "path": [
+            "Z01",
+            "Z06",
+            "EX2"
+          ],
+          "len_m": 28.6
+        },
+        {
+          "path": [
+            "Z01",
+            "Z11",
+            "Z12"
+          ],
+          "len_m": 59.65
+        }
+      ],
+      "W2": [
+        {
+          "path": [
+            "Z03",
+            "Z11",
+            "Z12"
+          ],
+          "len_m": 47.37
+        },
+        {
+          "path": [
+            "Z03",
+            "Z02",
+            "Z01",
+            "EX2"
+          ],
+          "len_m": 50.0
+        },
+        {
+          "path": [
+            "Z03",
+            "Z10",
+            "Z11",
+            "Z12"
+          ],
+          "len_m": 58.02
+        }
+      ],
+      "W3": [
+        {
+          "path": [
+            "Z06",
+            "EX2"
+          ],
+          "len_m": 15.26
+        },
+        {
+          "path": [
+            "Z06",
+            "Z01",
+            "EX2"
+          ],
+          "len_m": 24.34
+        },
+        {
+          "path": [
+            "Z06",
+            "Z07",
+            "Z12"
+          ],
+          "len_m": 54.61
+        }
+      ],
+      "W4": [
+        {
+          "path": [
+            "Z09",
+            "Z04",
+            "Z01",
+            "EX2"
+          ],
+          "len_m": 38.42
+        },
+        {
+          "path": [
+            "Z09",
+            "Z02",
+            "Z01",
+            "EX2"
+          ],
+          "len_m": 43.04
+        },
+        {
+          "path": [
+            "Z09",
+            "Z02",
+            "Z11",
+            "Z12"
+          ],
+          "len_m": 56.48
+        }
+      ]
+    },
+    "limitations": [
+      "구역·작업자 배치는 합성 데이터이며 실제 현장 측정치가 아니다.",
+      "EX2 비상구는 D1-LAW-005(출구 2개소 이상) 충족을 위한 합성 노드다.",
+      "간선장은 구역 중심 간 직선거리 근사이며 실제 통행 경로장이 아니다.",
+      "혼잡은 이차항 1차 근사이며 시간 전개형 인파 시뮬레이션·CFD가 아니다.",
+      "풍향 보정은 코사인 방향 가중 근사이며 확산 해석이 아니다."
+    ]
+  },
+  "cases": [
+    {
+      "label": "[중형 데모 24명] 기준(센서 결합 없음)",
+      "weather": {
+        "tm": "202607262000",
+        "stn": "108",
+        "wd_deg": 27.0,
+        "ws_ms": 1.8
+      },
+      "coupling": {
+        "applied": false,
+        "note": "위험 관측 신뢰도 균일 가정",
+        "worker_scenario": {
+          "id": "D6-SYN-002",
+          "name": "중형 데모 24명",
+          "total": 24
+        },
+        "groups": [
+          {
+            "id": "W1",
+            "origin": "Z01",
+            "n": 6,
+            "desc": "클린룸 시공 서측 작업조"
+          },
+          {
+            "id": "W2",
+            "origin": "Z03",
+            "n": 6,
+            "desc": "서브팹·유틸리티 작업조"
+          },
+          {
+            "id": "W3",
+            "origin": "Z06",
+            "n": 6,
+            "desc": "용접·화기 작업조"
+          },
+          {
+            "id": "W4",
+            "origin": "Z09",
+            "n": 6,
+            "desc": "팬데크·공조 작업조"
+          }
+        ]
+      },
+      "congestion_analysis": {
+        "independent_shortest_is_optimal": true,
+        "independent_gap_person_s": -0.0,
+        "mean_congestion_person_s": 35.9,
+        "max_congestion_person_s": 76.92,
+        "mean_time_person_s": 204.53,
+        "note": "혼잡 이차항 크기가 이동시간 대비 작으면 독립 최단경로가 그대로 최적이 된다. 인원이 늘어 이차항이 커지면 결합이 생겨 고전 최단경로 분해가 깨진다 — 이 교차점이 양자 최적화 적용의 정당한 근거다."
+      },
+      "risk_scores": {
+        "Z01": 0.461,
+        "Z02": 0.461,
+        "Z03": 1.0,
+        "Z04": 0.9904,
+        "Z05": 0.8254,
+        "Z06": 0.1,
+        "Z07": 0.3406,
+        "Z08": 0.5332,
+        "Z09": 0.55,
+        "Z10": 0.1481,
+        "Z11": 0.2396,
+        "Z12": 0.2925
+      },
+      "edge_risks": {
+        "EX2-Z01": 0.2805,
+        "EX2-Z06": 0.1,
+        "Z01-Z02": 0.461,
+        "Z01-Z04": 0.7257,
+        "Z01-Z06": 0.2805,
+        "Z01-Z11": 0.3503,
+        "Z02-Z03": 0.7305,
+        "Z02-Z04": 0.7257,
+        "Z02-Z09": 0.5055,
+        "Z02-Z11": 0.3503,
+        "Z03-Z08": 0.7666,
+        "Z03-Z09": 0.775,
+        "Z03-Z10": 0.5741,
+        "Z03-Z11": 0.6198,
+        "Z04-Z05": 0.9338,
+        "Z04-Z09": 0.7702,
+        "Z05-Z12": 0.559,
+        "Z06-Z07": 0.2203,
+        "Z06-Z11": 0.1698,
+        "Z07-Z11": 0.2901,
+        "Z07-Z12": 0.3166,
+        "Z08-Z09": 0.5416,
+        "Z10-Z11": 0.1939,
+        "Z11-Z12": 0.266
+      },
+      "qubo_notes": {
+        "unit": "person-seconds (인·초)",
+        "free_speed_ms": 1.19,
+        "walk_distance_limit_m": 30.0,
+        "lam_risk": 1.0,
+        "lam_risk_effective": 2.7714,
+        "lam_risk_balanced": true,
+        "kappa": 1.0,
+        "mean_time_person_s": 204.53,
+        "mean_risk_term_person_s": 73.8,
+        "mean_congestion_person_s": 35.9,
+        "max_congestion_person_s": 76.92,
+        "lam_dist": 617.971,
+        "lam_one": 2337.032,
+        "distance_violation_ratio": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 0.9883,
+          "3": 0.579,
+          "4": 0.6667,
+          "5": 0.934,
+          "6": 0.0,
+          "7": 0.0,
+          "8": 0.8203,
+          "9": 0.2807,
+          "10": 0.4347,
+          "11": 0.8827
+        },
+        "congestion_pairs": {
+          "0-4": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "0-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "0-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "0-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "1-6": {
+            "edges": [
+              "EX2-Z06"
+            ],
+            "cost_person_s": 46.15
+          },
+          "1-7": {
+            "edges": [
+              "Z01-Z06"
+            ],
+            "cost_person_s": 30.77
+          },
+          "2-3": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "2-5": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "2-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "3-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "4-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "4-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "4-10": {
+            "edges": [
+              "EX2-Z01",
+              "Z01-Z02"
+            ],
+            "cost_person_s": 76.92
+          },
+          "5-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "7-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "7-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          }
+        },
+        "evidence": {
+          "T": "D2-FLOW-001 자유류 보행속도 1.19 m/s (NIST TN 1471)",
+          "S": "D2-FLOW-004 최대 단위폭 유동률 1.3 persons/(m·s) × 유효폭(D2-FLOW-005)",
+          "V": "D1-LAW-001 건축법 시행령 제34조제1항 보행거리 30 m"
+        }
+      },
+      "energy_stats": {
+        "min": 1799.5890436182463,
+        "max": 46327.919951264776,
+        "mean": 13672.241
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1799.5890436182463,
+          "time_s": 0.0011,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1799.5890436182453,
+          "time_s": 0.0005,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1799.5890436182453,
+          "time_s": 0.2137,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1799.5890436182453,
+          "time_s": 0.0422,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "독립 최단경로(Dijkstra 대응)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1799.5890436182453,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "위험가중 최단경로",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          "energy": 1845.7906580710314,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 660.7,
+            "makespan_s": 42.0,
+            "risk_exposure": 230.95,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z01→EX2",
+                "len_m": 43.04,
+                "time_s": 42.0,
+                "risk_exposure": 17.082,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 46.201614,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z01→EX2"
+          }
+        }
+      ],
+      "qaoa": [
+        {
+          "p": 1,
+          "params": [
+            1.364331726343951,
+            2.7405094219621207
+          ],
+          "expected_energy": 5801.153889446572,
+          "approx_ratio": 0.9101,
+          "prob_optimal": 0.003844,
+          "prob_optimal_vs_uniform": 15.74,
+          "time_s": 0.23,
+          "shots": 2048,
+          "best_sampled_energy": 1799.5890436182463,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            4.705297430952405,
+            4.184423236965271,
+            3.833178708034562,
+            2.109330517967666
+          ],
+          "expected_energy": 4654.728637443297,
+          "approx_ratio": 0.9359,
+          "prob_optimal": 0.015081,
+          "prob_optimal_vs_uniform": 61.77,
+          "time_s": 0.65,
+          "shots": 2048,
+          "best_sampled_energy": 1799.5890436182463,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 257.15,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 4.242,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 15.849,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.318,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 21.449,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ]
+    },
+    {
+      "label": "[중형 데모 24명] 결합 A(센서 커버리지 반영)",
+      "weather": {
+        "tm": "202607262000",
+        "stn": "108",
+        "wd_deg": 27.0,
+        "ws_ms": 1.8
+      },
+      "coupling": {
+        "applied": true,
+        "kappa": 0.3,
+        "formula": "r_eff = r × (1 + κ(1 − 커버율))",
+        "rationale": "센서가 보지 못하는 구역은 위험 관측 신뢰도가 낮으므로 대피 계산에서 보수적으로 취급",
+        "uplift": {
+          "Z01": 1.3,
+          "Z02": 1.3,
+          "Z03": 1.177,
+          "Z04": 1.036,
+          "Z05": 1.036,
+          "Z06": 1.3,
+          "Z07": 1.3,
+          "Z08": 1.009,
+          "Z09": 1.08,
+          "Z10": 1.065,
+          "Z11": 1.3,
+          "Z12": 1.3
+        },
+        "source": "results/experiment_results.json (센서 QUBO Exact 최적해)",
+        "scenario": "nominal",
+        "sensor_x": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "note": "커버율 = 1 − Π(1 − a_zj x_j), 부분면적 커버리지 v1 기준",
+        "coverage": {
+          "Z01": 0.0,
+          "Z02": 0.0,
+          "Z03": 0.4091,
+          "Z04": 0.8796,
+          "Z05": 0.8796,
+          "Z06": 0.0,
+          "Z07": 0.0,
+          "Z08": 0.9717,
+          "Z09": 0.733,
+          "Z10": 0.7854,
+          "Z11": 0.0,
+          "Z12": 0.0
+        },
+        "worker_scenario": {
+          "id": "D6-SYN-002",
+          "name": "중형 데모 24명",
+          "total": 24
+        },
+        "groups": [
+          {
+            "id": "W1",
+            "origin": "Z01",
+            "n": 6,
+            "desc": "클린룸 시공 서측 작업조"
+          },
+          {
+            "id": "W2",
+            "origin": "Z03",
+            "n": 6,
+            "desc": "서브팹·유틸리티 작업조"
+          },
+          {
+            "id": "W3",
+            "origin": "Z06",
+            "n": 6,
+            "desc": "용접·화기 작업조"
+          },
+          {
+            "id": "W4",
+            "origin": "Z09",
+            "n": 6,
+            "desc": "팬데크·공조 작업조"
+          }
+        ]
+      },
+      "congestion_analysis": {
+        "independent_shortest_is_optimal": true,
+        "independent_gap_person_s": 0.0,
+        "mean_congestion_person_s": 35.9,
+        "max_congestion_person_s": 76.92,
+        "mean_time_person_s": 204.53,
+        "note": "혼잡 이차항 크기가 이동시간 대비 작으면 독립 최단경로가 그대로 최적이 된다. 인원이 늘어 이차항이 커지면 결합이 생겨 고전 최단경로 분해가 깨진다 — 이 교차점이 양자 최적화 적용의 정당한 근거다."
+      },
+      "risk_scores": {
+        "Z01": 0.5993,
+        "Z02": 0.5993,
+        "Z03": 1.1773,
+        "Z04": 1.0261,
+        "Z05": 0.8552,
+        "Z06": 0.13,
+        "Z07": 0.4428,
+        "Z08": 0.5377,
+        "Z09": 0.5941,
+        "Z10": 0.1577,
+        "Z11": 0.3114,
+        "Z12": 0.3803
+      },
+      "edge_risks": {
+        "EX2-Z01": 0.3647,
+        "EX2-Z06": 0.13,
+        "Z01-Z02": 0.5993,
+        "Z01-Z04": 0.8127,
+        "Z01-Z06": 0.3647,
+        "Z01-Z11": 0.4554,
+        "Z02-Z03": 0.8883,
+        "Z02-Z04": 0.8127,
+        "Z02-Z09": 0.5967,
+        "Z02-Z11": 0.4554,
+        "Z03-Z08": 0.8575,
+        "Z03-Z09": 0.8857,
+        "Z03-Z10": 0.6675,
+        "Z03-Z11": 0.7444,
+        "Z04-Z05": 0.9676,
+        "Z04-Z09": 0.8101,
+        "Z05-Z12": 0.6178,
+        "Z06-Z07": 0.2864,
+        "Z06-Z11": 0.2207,
+        "Z07-Z11": 0.3771,
+        "Z07-Z12": 0.4116,
+        "Z08-Z09": 0.5659,
+        "Z10-Z11": 0.2346,
+        "Z11-Z12": 0.3458
+      },
+      "qubo_notes": {
+        "unit": "person-seconds (인·초)",
+        "free_speed_ms": 1.19,
+        "walk_distance_limit_m": 30.0,
+        "lam_risk": 1.0,
+        "lam_risk_effective": 2.2232,
+        "lam_risk_balanced": true,
+        "kappa": 1.0,
+        "mean_time_person_s": 204.53,
+        "mean_risk_term_person_s": 92.0,
+        "mean_congestion_person_s": 35.9,
+        "max_congestion_person_s": 76.92,
+        "lam_dist": 620.606,
+        "lam_one": 2364.269,
+        "distance_violation_ratio": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 0.9883,
+          "3": 0.579,
+          "4": 0.6667,
+          "5": 0.934,
+          "6": 0.0,
+          "7": 0.0,
+          "8": 0.8203,
+          "9": 0.2807,
+          "10": 0.4347,
+          "11": 0.8827
+        },
+        "congestion_pairs": {
+          "0-4": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "0-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "0-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "0-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "1-6": {
+            "edges": [
+              "EX2-Z06"
+            ],
+            "cost_person_s": 46.15
+          },
+          "1-7": {
+            "edges": [
+              "Z01-Z06"
+            ],
+            "cost_person_s": 30.77
+          },
+          "2-3": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "2-5": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "2-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "3-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "4-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "4-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "4-10": {
+            "edges": [
+              "EX2-Z01",
+              "Z01-Z02"
+            ],
+            "cost_person_s": 76.92
+          },
+          "5-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 10.26
+          },
+          "7-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          },
+          "7-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 46.15
+          }
+        },
+        "evidence": {
+          "T": "D2-FLOW-001 자유류 보행속도 1.19 m/s (NIST TN 1471)",
+          "S": "D2-FLOW-004 최대 단위폭 유동률 1.3 persons/(m·s) × 유효폭(D2-FLOW-005)",
+          "V": "D1-LAW-001 건축법 시행령 제34조제1항 보행거리 30 m"
+        }
+      },
+      "energy_stats": {
+        "min": 1768.881507899414,
+        "max": 46778.41979284262,
+        "mean": 13788.544
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1768.881507899414,
+          "time_s": 0.0011,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1768.881507899414,
+          "time_s": 0.0004,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1768.881507899414,
+          "time_s": 0.2037,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1768.881507899414,
+          "time_s": 0.0498,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "독립 최단경로(Dijkstra 대응)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1768.881507899414,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "위험가중 최단경로",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 1768.881507899414,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        }
+      ],
+      "qaoa": [
+        {
+          "p": 1,
+          "params": [
+            1.363323526205804,
+            2.740895043485172
+          ],
+          "expected_energy": 5842.543713439049,
+          "approx_ratio": 0.9095,
+          "prob_optimal": 0.003862,
+          "prob_optimal_vs_uniform": 15.82,
+          "time_s": 0.23,
+          "shots": 2048,
+          "best_sampled_energy": 1768.881507899414,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            1.3496751911396503,
+            -0.46095844400453345,
+            4.441966938668587,
+            1.4403573027698253
+          ],
+          "expected_energy": 5828.552554732947,
+          "approx_ratio": 0.9098,
+          "prob_optimal": 0.003187,
+          "prob_optimal_vs_uniform": 13.06,
+          "time_s": 0.59,
+          "shots": 2048,
+          "best_sampled_energy": 1768.881507899414,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 637.7,
+            "makespan_s": 39.8,
+            "risk_exposure": 306.8,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 15.1,
+                "risk_exposure": 5.515,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 39.8,
+                "risk_exposure": 19.691,
+                "n": 6,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 13.2,
+                "risk_exposure": 1.714,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 38.2,
+                "risk_exposure": 24.213,
+                "n": 6,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ]
+    },
+    {
+      "label": "[확장성 분석 60명] 기준(센서 결합 없음)",
+      "weather": {
+        "tm": "202607262000",
+        "stn": "108",
+        "wd_deg": 27.0,
+        "ws_ms": 1.8
+      },
+      "coupling": {
+        "applied": false,
+        "note": "위험 관측 신뢰도 균일 가정",
+        "worker_scenario": {
+          "id": "D6-SYN-003",
+          "name": "확장성 분석 60명",
+          "total": 60
+        },
+        "groups": [
+          {
+            "id": "W1",
+            "origin": "Z01",
+            "n": 15,
+            "desc": "클린룸 시공 서측 작업조"
+          },
+          {
+            "id": "W2",
+            "origin": "Z03",
+            "n": 15,
+            "desc": "서브팹·유틸리티 작업조"
+          },
+          {
+            "id": "W3",
+            "origin": "Z06",
+            "n": 15,
+            "desc": "용접·화기 작업조"
+          },
+          {
+            "id": "W4",
+            "origin": "Z09",
+            "n": 15,
+            "desc": "팬데크·공조 작업조"
+          }
+        ]
+      },
+      "congestion_analysis": {
+        "independent_shortest_is_optimal": true,
+        "independent_gap_person_s": 0.0,
+        "mean_congestion_person_s": 224.36,
+        "max_congestion_person_s": 480.77,
+        "mean_time_person_s": 511.33,
+        "note": "혼잡 이차항 크기가 이동시간 대비 작으면 독립 최단경로가 그대로 최적이 된다. 인원이 늘어 이차항이 커지면 결합이 생겨 고전 최단경로 분해가 깨진다 — 이 교차점이 양자 최적화 적용의 정당한 근거다."
+      },
+      "risk_scores": {
+        "Z01": 0.461,
+        "Z02": 0.461,
+        "Z03": 1.0,
+        "Z04": 0.9904,
+        "Z05": 0.8254,
+        "Z06": 0.1,
+        "Z07": 0.3406,
+        "Z08": 0.5332,
+        "Z09": 0.55,
+        "Z10": 0.1481,
+        "Z11": 0.2396,
+        "Z12": 0.2925
+      },
+      "edge_risks": {
+        "EX2-Z01": 0.2805,
+        "EX2-Z06": 0.1,
+        "Z01-Z02": 0.461,
+        "Z01-Z04": 0.7257,
+        "Z01-Z06": 0.2805,
+        "Z01-Z11": 0.3503,
+        "Z02-Z03": 0.7305,
+        "Z02-Z04": 0.7257,
+        "Z02-Z09": 0.5055,
+        "Z02-Z11": 0.3503,
+        "Z03-Z08": 0.7666,
+        "Z03-Z09": 0.775,
+        "Z03-Z10": 0.5741,
+        "Z03-Z11": 0.6198,
+        "Z04-Z05": 0.9338,
+        "Z04-Z09": 0.7702,
+        "Z05-Z12": 0.559,
+        "Z06-Z07": 0.2203,
+        "Z06-Z11": 0.1698,
+        "Z07-Z11": 0.2901,
+        "Z07-Z12": 0.3166,
+        "Z08-Z09": 0.5416,
+        "Z10-Z11": 0.1939,
+        "Z11-Z12": 0.266
+      },
+      "qubo_notes": {
+        "unit": "person-seconds (인·초)",
+        "free_speed_ms": 1.19,
+        "walk_distance_limit_m": 30.0,
+        "lam_risk": 1.0,
+        "lam_risk_effective": 2.7714,
+        "lam_risk_balanced": true,
+        "kappa": 1.0,
+        "mean_time_person_s": 511.33,
+        "mean_risk_term_person_s": 184.51,
+        "mean_congestion_person_s": 224.36,
+        "max_congestion_person_s": 480.77,
+        "lam_dist": 1544.929,
+        "lam_one": 5842.581,
+        "distance_violation_ratio": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 0.9883,
+          "3": 0.579,
+          "4": 0.6667,
+          "5": 0.934,
+          "6": 0.0,
+          "7": 0.0,
+          "8": 0.8203,
+          "9": 0.2807,
+          "10": 0.4347,
+          "11": 0.8827
+        },
+        "congestion_pairs": {
+          "0-4": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "0-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "0-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "0-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "1-6": {
+            "edges": [
+              "EX2-Z06"
+            ],
+            "cost_person_s": 288.46
+          },
+          "1-7": {
+            "edges": [
+              "Z01-Z06"
+            ],
+            "cost_person_s": 192.31
+          },
+          "2-3": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "2-5": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "2-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "3-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "4-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "4-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "4-10": {
+            "edges": [
+              "EX2-Z01",
+              "Z01-Z02"
+            ],
+            "cost_person_s": 480.77
+          },
+          "5-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "7-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "7-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          }
+        },
+        "evidence": {
+          "T": "D2-FLOW-001 자유류 보행속도 1.19 m/s (NIST TN 1471)",
+          "S": "D2-FLOW-004 최대 단위폭 유동률 1.3 persons/(m·s) × 유효폭(D2-FLOW-005)",
+          "V": "D1-LAW-001 건축법 시행령 제34조제1항 보행거리 30 m"
+        }
+      },
+      "energy_stats": {
+        "min": 4672.049532122539,
+        "max": 117973.64603200808,
+        "mean": 34719.063
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4672.049532122539,
+          "time_s": 0.0012,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4672.049532122539,
+          "time_s": 0.0003,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4672.049532122539,
+          "time_s": 0.2041,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4672.049532122539,
+          "time_s": 0.0422,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "독립 최단경로(Dijkstra 대응)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4672.049532122539,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "위험가중 최단경로",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          "energy": 4787.553568254501,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4673.8,
+            "makespan_s": 141.9,
+            "risk_exposure": 1427.9,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z01→EX2",
+                "len_m": 43.04,
+                "time_s": 141.9,
+                "risk_exposure": 46.153,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 115.504036,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z01→EX2"
+          }
+        }
+      ],
+      "qaoa": [
+        {
+          "p": 1,
+          "params": [
+            1.3727674260113147,
+            2.7379083783644664
+          ],
+          "expected_energy": 14712.881469657072,
+          "approx_ratio": 0.9114,
+          "prob_optimal": 0.003839,
+          "prob_optimal_vs_uniform": 15.72,
+          "time_s": 0.22,
+          "shots": 2048,
+          "best_sampled_energy": 4672.049532122539,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            4.621556921341831,
+            4.1895190809270355,
+            3.8293682411988894,
+            2.1043065100496183
+          ],
+          "expected_energy": 12652.592106388907,
+          "approx_ratio": 0.9296,
+          "prob_optimal": 0.013831,
+          "prob_optimal_vs_uniform": 56.65,
+          "time_s": 0.58,
+          "shots": 2048,
+          "best_sampled_energy": 4672.049532122539,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1522.08,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 16.265,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 1.922,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 52.431,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ]
+    },
+    {
+      "label": "[확장성 분석 60명] 결합 A(센서 커버리지 반영)",
+      "weather": {
+        "tm": "202607262000",
+        "stn": "108",
+        "wd_deg": 27.0,
+        "ws_ms": 1.8
+      },
+      "coupling": {
+        "applied": true,
+        "kappa": 0.3,
+        "formula": "r_eff = r × (1 + κ(1 − 커버율))",
+        "rationale": "센서가 보지 못하는 구역은 위험 관측 신뢰도가 낮으므로 대피 계산에서 보수적으로 취급",
+        "uplift": {
+          "Z01": 1.3,
+          "Z02": 1.3,
+          "Z03": 1.177,
+          "Z04": 1.036,
+          "Z05": 1.036,
+          "Z06": 1.3,
+          "Z07": 1.3,
+          "Z08": 1.009,
+          "Z09": 1.08,
+          "Z10": 1.065,
+          "Z11": 1.3,
+          "Z12": 1.3
+        },
+        "source": "results/experiment_results.json (센서 QUBO Exact 최적해)",
+        "scenario": "nominal",
+        "sensor_x": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "note": "커버율 = 1 − Π(1 − a_zj x_j), 부분면적 커버리지 v1 기준",
+        "coverage": {
+          "Z01": 0.0,
+          "Z02": 0.0,
+          "Z03": 0.4091,
+          "Z04": 0.8796,
+          "Z05": 0.8796,
+          "Z06": 0.0,
+          "Z07": 0.0,
+          "Z08": 0.9717,
+          "Z09": 0.733,
+          "Z10": 0.7854,
+          "Z11": 0.0,
+          "Z12": 0.0
+        },
+        "worker_scenario": {
+          "id": "D6-SYN-003",
+          "name": "확장성 분석 60명",
+          "total": 60
+        },
+        "groups": [
+          {
+            "id": "W1",
+            "origin": "Z01",
+            "n": 15,
+            "desc": "클린룸 시공 서측 작업조"
+          },
+          {
+            "id": "W2",
+            "origin": "Z03",
+            "n": 15,
+            "desc": "서브팹·유틸리티 작업조"
+          },
+          {
+            "id": "W3",
+            "origin": "Z06",
+            "n": 15,
+            "desc": "용접·화기 작업조"
+          },
+          {
+            "id": "W4",
+            "origin": "Z09",
+            "n": 15,
+            "desc": "팬데크·공조 작업조"
+          }
+        ]
+      },
+      "congestion_analysis": {
+        "independent_shortest_is_optimal": true,
+        "independent_gap_person_s": 0.0,
+        "mean_congestion_person_s": 224.36,
+        "max_congestion_person_s": 480.77,
+        "mean_time_person_s": 511.33,
+        "note": "혼잡 이차항 크기가 이동시간 대비 작으면 독립 최단경로가 그대로 최적이 된다. 인원이 늘어 이차항이 커지면 결합이 생겨 고전 최단경로 분해가 깨진다 — 이 교차점이 양자 최적화 적용의 정당한 근거다."
+      },
+      "risk_scores": {
+        "Z01": 0.5993,
+        "Z02": 0.5993,
+        "Z03": 1.1773,
+        "Z04": 1.0261,
+        "Z05": 0.8552,
+        "Z06": 0.13,
+        "Z07": 0.4428,
+        "Z08": 0.5377,
+        "Z09": 0.5941,
+        "Z10": 0.1577,
+        "Z11": 0.3114,
+        "Z12": 0.3803
+      },
+      "edge_risks": {
+        "EX2-Z01": 0.3647,
+        "EX2-Z06": 0.13,
+        "Z01-Z02": 0.5993,
+        "Z01-Z04": 0.8127,
+        "Z01-Z06": 0.3647,
+        "Z01-Z11": 0.4554,
+        "Z02-Z03": 0.8883,
+        "Z02-Z04": 0.8127,
+        "Z02-Z09": 0.5967,
+        "Z02-Z11": 0.4554,
+        "Z03-Z08": 0.8575,
+        "Z03-Z09": 0.8857,
+        "Z03-Z10": 0.6675,
+        "Z03-Z11": 0.7444,
+        "Z04-Z05": 0.9676,
+        "Z04-Z09": 0.8101,
+        "Z05-Z12": 0.6178,
+        "Z06-Z07": 0.2864,
+        "Z06-Z11": 0.2207,
+        "Z07-Z11": 0.3771,
+        "Z07-Z12": 0.4116,
+        "Z08-Z09": 0.5659,
+        "Z10-Z11": 0.2346,
+        "Z11-Z12": 0.3458
+      },
+      "qubo_notes": {
+        "unit": "person-seconds (인·초)",
+        "free_speed_ms": 1.19,
+        "walk_distance_limit_m": 30.0,
+        "lam_risk": 1.0,
+        "lam_risk_effective": 2.2232,
+        "lam_risk_balanced": true,
+        "kappa": 1.0,
+        "mean_time_person_s": 511.33,
+        "mean_risk_term_person_s": 230.0,
+        "mean_congestion_person_s": 224.36,
+        "max_congestion_person_s": 480.77,
+        "lam_dist": 1551.514,
+        "lam_one": 5910.672,
+        "distance_violation_ratio": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 0.9883,
+          "3": 0.579,
+          "4": 0.6667,
+          "5": 0.934,
+          "6": 0.0,
+          "7": 0.0,
+          "8": 0.8203,
+          "9": 0.2807,
+          "10": 0.4347,
+          "11": 0.8827
+        },
+        "congestion_pairs": {
+          "0-4": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "0-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "0-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "0-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "1-6": {
+            "edges": [
+              "EX2-Z06"
+            ],
+            "cost_person_s": 288.46
+          },
+          "1-7": {
+            "edges": [
+              "Z01-Z06"
+            ],
+            "cost_person_s": 192.31
+          },
+          "2-3": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "2-5": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "2-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "3-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "4-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "4-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "4-10": {
+            "edges": [
+              "EX2-Z01",
+              "Z01-Z02"
+            ],
+            "cost_person_s": 480.77
+          },
+          "5-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 64.1
+          },
+          "7-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          },
+          "7-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 288.46
+          }
+        },
+        "evidence": {
+          "T": "D2-FLOW-001 자유류 보행속도 1.19 m/s (NIST TN 1471)",
+          "S": "D2-FLOW-004 최대 단위폭 유동률 1.3 persons/(m·s) × 유효폭(D2-FLOW-005)",
+          "V": "D1-LAW-001 건축법 시행령 제34조제1항 보행거리 30 m"
+        }
+      },
+      "energy_stats": {
+        "min": 4595.280692825458,
+        "max": 119099.89563595271,
+        "mean": 35009.823
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4595.280692825458,
+          "time_s": 0.0011,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4595.280692825458,
+          "time_s": 0.0003,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4595.280692825458,
+          "time_s": 0.2008,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4595.280692825458,
+          "time_s": 0.0449,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "독립 최단경로(Dijkstra 대응)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4595.280692825458,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "위험가중 최단경로",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 4595.280692825458,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        }
+      ],
+      "qaoa": [
+        {
+          "p": 1,
+          "params": [
+            1.371656905983536,
+            2.738326792814279
+          ],
+          "expected_energy": 14817.355843026235,
+          "approx_ratio": 0.9107,
+          "prob_optimal": 0.003858,
+          "prob_optimal_vs_uniform": 15.8,
+          "time_s": 0.23,
+          "shots": 2048,
+          "best_sampled_energy": 4595.280692825458,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            4.634440488327312,
+            4.1877098831807995,
+            3.830291296028472,
+            2.104876425745271
+          ],
+          "expected_energy": 12518.232772783846,
+          "approx_ratio": 0.9308,
+          "prob_optimal": 0.014416,
+          "prob_optimal_vs_uniform": 59.05,
+          "time_s": 0.65,
+          "shots": 2048,
+          "best_sampled_energy": 4595.280692825458,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 4628.6,
+            "makespan_s": 138.9,
+            "risk_exposure": 1895.14,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 40.5,
+                "risk_exposure": 20.191,
+                "n": 15,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 19.2,
+                "risk_exposure": 2.499,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 138.9,
+                "risk_exposure": 63.541,
+                "n": 15,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ]
+    },
+    {
+      "label": "[혼잡 지배 구간 320명(파생 가정)] 기준(센서 결합 없음)",
+      "weather": {
+        "tm": "202607262000",
+        "stn": "108",
+        "wd_deg": 27.0,
+        "ws_ms": 1.8
+      },
+      "coupling": {
+        "applied": false,
+        "note": "위험 관측 신뢰도 균일 가정",
+        "worker_scenario": {
+          "id": "파생-320",
+          "name": "혼잡 지배 구간 320명(파생 가정)",
+          "total": 320,
+          "note": "교차점 분석에서 독립 최단경로가 최적이 아니게 되는 구간. D6-SYN 표에 없는 파생 가정치이며, 현장 전체 인원(D6-WF-001 4,200명·D6-WF-002 6,000명)의 한 대피 섹터 규모로 해석한다. 실측 아님."
+        },
+        "groups": [
+          {
+            "id": "W1",
+            "origin": "Z01",
+            "n": 80,
+            "desc": "클린룸 시공 서측 작업조"
+          },
+          {
+            "id": "W2",
+            "origin": "Z03",
+            "n": 80,
+            "desc": "서브팹·유틸리티 작업조"
+          },
+          {
+            "id": "W3",
+            "origin": "Z06",
+            "n": 80,
+            "desc": "용접·화기 작업조"
+          },
+          {
+            "id": "W4",
+            "origin": "Z09",
+            "n": 80,
+            "desc": "팬데크·공조 작업조"
+          }
+        ]
+      },
+      "congestion_analysis": {
+        "independent_shortest_is_optimal": false,
+        "independent_gap_person_s": 1028.98,
+        "mean_congestion_person_s": 6381.77,
+        "max_congestion_person_s": 13675.21,
+        "mean_time_person_s": 2727.11,
+        "note": "혼잡 이차항 크기가 이동시간 대비 작으면 독립 최단경로가 그대로 최적이 된다. 인원이 늘어 이차항이 커지면 결합이 생겨 고전 최단경로 분해가 깨진다 — 이 교차점이 양자 최적화 적용의 정당한 근거다."
+      },
+      "risk_scores": {
+        "Z01": 0.461,
+        "Z02": 0.461,
+        "Z03": 1.0,
+        "Z04": 0.9904,
+        "Z05": 0.8254,
+        "Z06": 0.1,
+        "Z07": 0.3406,
+        "Z08": 0.5332,
+        "Z09": 0.55,
+        "Z10": 0.1481,
+        "Z11": 0.2396,
+        "Z12": 0.2925
+      },
+      "edge_risks": {
+        "EX2-Z01": 0.2805,
+        "EX2-Z06": 0.1,
+        "Z01-Z02": 0.461,
+        "Z01-Z04": 0.7257,
+        "Z01-Z06": 0.2805,
+        "Z01-Z11": 0.3503,
+        "Z02-Z03": 0.7305,
+        "Z02-Z04": 0.7257,
+        "Z02-Z09": 0.5055,
+        "Z02-Z11": 0.3503,
+        "Z03-Z08": 0.7666,
+        "Z03-Z09": 0.775,
+        "Z03-Z10": 0.5741,
+        "Z03-Z11": 0.6198,
+        "Z04-Z05": 0.9338,
+        "Z04-Z09": 0.7702,
+        "Z05-Z12": 0.559,
+        "Z06-Z07": 0.2203,
+        "Z06-Z11": 0.1698,
+        "Z07-Z11": 0.2901,
+        "Z07-Z12": 0.3166,
+        "Z08-Z09": 0.5416,
+        "Z10-Z11": 0.1939,
+        "Z11-Z12": 0.266
+      },
+      "qubo_notes": {
+        "unit": "person-seconds (인·초)",
+        "free_speed_ms": 1.19,
+        "walk_distance_limit_m": 30.0,
+        "lam_risk": 1.0,
+        "lam_risk_effective": 2.7714,
+        "lam_risk_balanced": true,
+        "kappa": 1.0,
+        "mean_time_person_s": 2727.11,
+        "mean_risk_term_person_s": 984.04,
+        "mean_congestion_person_s": 6381.77,
+        "max_congestion_person_s": 13675.21,
+        "lam_dist": 8239.619,
+        "lam_one": 31160.432,
+        "distance_violation_ratio": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 0.9883,
+          "3": 0.579,
+          "4": 0.6667,
+          "5": 0.934,
+          "6": 0.0,
+          "7": 0.0,
+          "8": 0.8203,
+          "9": 0.2807,
+          "10": 0.4347,
+          "11": 0.8827
+        },
+        "congestion_pairs": {
+          "0-4": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "0-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "0-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "0-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "1-6": {
+            "edges": [
+              "EX2-Z06"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "1-7": {
+            "edges": [
+              "Z01-Z06"
+            ],
+            "cost_person_s": 5470.09
+          },
+          "2-3": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "2-5": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "2-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "3-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "4-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "4-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "4-10": {
+            "edges": [
+              "EX2-Z01",
+              "Z01-Z02"
+            ],
+            "cost_person_s": 13675.21
+          },
+          "5-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "7-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "7-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          }
+        },
+        "evidence": {
+          "T": "D2-FLOW-001 자유류 보행속도 1.19 m/s (NIST TN 1471)",
+          "S": "D2-FLOW-004 최대 단위폭 유동률 1.3 persons/(m·s) × 유효폭(D2-FLOW-005)",
+          "V": "D1-LAW-001 건축법 시행령 제34조제1항 보행거리 30 m"
+        }
+      },
+      "energy_stats": {
+        "min": 30555.282168155973,
+        "max": 712155.7418003393,
+        "mean": 205909.076
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30555.282168155973,
+          "time_s": 0.001,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 23375.58,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 121.581,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 124.501,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30555.282168155973,
+          "time_s": 0.0003,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 23375.58,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 121.581,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 124.501,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30555.282168155973,
+          "time_s": 0.1862,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 23375.58,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 121.581,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 124.501,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30555.282168155973,
+          "time_s": 0.044,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 23375.58,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 121.581,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 124.501,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "독립 최단경로(Dijkstra 대응)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 31584.264171320203,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 68199.8,
+            "makespan_s": 384.2,
+            "risk_exposure": 31922.66,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z03-Z11",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 205.7,
+                "risk_exposure": 117.302,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 384.2,
+                "risk_exposure": 235.619,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 1028.982003,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "위험가중 최단경로",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          "energy": 32200.28569735735,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 71895.8,
+            "makespan_s": 430.4,
+            "risk_exposure": 27785.6,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z02",
+              "Z02-Z09",
+              "Z03-Z11"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 205.7,
+                "risk_exposure": 117.302,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z01→EX2",
+                "len_m": 43.04,
+                "time_s": 430.4,
+                "risk_exposure": 183.905,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 1645.003529,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z01→EX2"
+          }
+        }
+      ],
+      "qaoa": [
+        {
+          "p": 1,
+          "params": [
+            1.4360310266787648,
+            2.7180477224018915
+          ],
+          "expected_energy": 84684.26485782785,
+          "approx_ratio": 0.9206,
+          "prob_optimal": 0.003805,
+          "prob_optimal_vs_uniform": 15.58,
+          "time_s": 0.23,
+          "shots": 2048,
+          "best_sampled_energy": 30555.282168155973,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 23375.58,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 121.581,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 124.501,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            -1.3580253841030294,
+            0.7191993781514283,
+            4.099802526185956,
+            2.6704076139413058
+          ],
+          "expected_energy": 73265.62542320152,
+          "approx_ratio": 0.9373,
+          "prob_optimal": 0.005335,
+          "prob_optimal_vs_uniform": 21.85,
+          "time_s": 0.67,
+          "shots": 2048,
+          "best_sampled_energy": 30555.282168155973,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 23375.58,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 30.853,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 121.581,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 15.26,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 124.501,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ]
+    },
+    {
+      "label": "[혼잡 지배 구간 320명(파생 가정)] 결합 A(센서 커버리지 반영)",
+      "weather": {
+        "tm": "202607262000",
+        "stn": "108",
+        "wd_deg": 27.0,
+        "ws_ms": 1.8
+      },
+      "coupling": {
+        "applied": true,
+        "kappa": 0.3,
+        "formula": "r_eff = r × (1 + κ(1 − 커버율))",
+        "rationale": "센서가 보지 못하는 구역은 위험 관측 신뢰도가 낮으므로 대피 계산에서 보수적으로 취급",
+        "uplift": {
+          "Z01": 1.3,
+          "Z02": 1.3,
+          "Z03": 1.177,
+          "Z04": 1.036,
+          "Z05": 1.036,
+          "Z06": 1.3,
+          "Z07": 1.3,
+          "Z08": 1.009,
+          "Z09": 1.08,
+          "Z10": 1.065,
+          "Z11": 1.3,
+          "Z12": 1.3
+        },
+        "source": "results/experiment_results.json (센서 QUBO Exact 최적해)",
+        "scenario": "nominal",
+        "sensor_x": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "note": "커버율 = 1 − Π(1 − a_zj x_j), 부분면적 커버리지 v1 기준",
+        "coverage": {
+          "Z01": 0.0,
+          "Z02": 0.0,
+          "Z03": 0.4091,
+          "Z04": 0.8796,
+          "Z05": 0.8796,
+          "Z06": 0.0,
+          "Z07": 0.0,
+          "Z08": 0.9717,
+          "Z09": 0.733,
+          "Z10": 0.7854,
+          "Z11": 0.0,
+          "Z12": 0.0
+        },
+        "worker_scenario": {
+          "id": "파생-320",
+          "name": "혼잡 지배 구간 320명(파생 가정)",
+          "total": 320,
+          "note": "교차점 분석에서 독립 최단경로가 최적이 아니게 되는 구간. D6-SYN 표에 없는 파생 가정치이며, 현장 전체 인원(D6-WF-001 4,200명·D6-WF-002 6,000명)의 한 대피 섹터 규모로 해석한다. 실측 아님."
+        },
+        "groups": [
+          {
+            "id": "W1",
+            "origin": "Z01",
+            "n": 80,
+            "desc": "클린룸 시공 서측 작업조"
+          },
+          {
+            "id": "W2",
+            "origin": "Z03",
+            "n": 80,
+            "desc": "서브팹·유틸리티 작업조"
+          },
+          {
+            "id": "W3",
+            "origin": "Z06",
+            "n": 80,
+            "desc": "용접·화기 작업조"
+          },
+          {
+            "id": "W4",
+            "origin": "Z09",
+            "n": 80,
+            "desc": "팬데크·공조 작업조"
+          }
+        ]
+      },
+      "congestion_analysis": {
+        "independent_shortest_is_optimal": false,
+        "independent_gap_person_s": 498.85,
+        "mean_congestion_person_s": 6381.77,
+        "max_congestion_person_s": 13675.21,
+        "mean_time_person_s": 2727.11,
+        "note": "혼잡 이차항 크기가 이동시간 대비 작으면 독립 최단경로가 그대로 최적이 된다. 인원이 늘어 이차항이 커지면 결합이 생겨 고전 최단경로 분해가 깨진다 — 이 교차점이 양자 최적화 적용의 정당한 근거다."
+      },
+      "risk_scores": {
+        "Z01": 0.5993,
+        "Z02": 0.5993,
+        "Z03": 1.1773,
+        "Z04": 1.0261,
+        "Z05": 0.8552,
+        "Z06": 0.13,
+        "Z07": 0.4428,
+        "Z08": 0.5377,
+        "Z09": 0.5941,
+        "Z10": 0.1577,
+        "Z11": 0.3114,
+        "Z12": 0.3803
+      },
+      "edge_risks": {
+        "EX2-Z01": 0.3647,
+        "EX2-Z06": 0.13,
+        "Z01-Z02": 0.5993,
+        "Z01-Z04": 0.8127,
+        "Z01-Z06": 0.3647,
+        "Z01-Z11": 0.4554,
+        "Z02-Z03": 0.8883,
+        "Z02-Z04": 0.8127,
+        "Z02-Z09": 0.5967,
+        "Z02-Z11": 0.4554,
+        "Z03-Z08": 0.8575,
+        "Z03-Z09": 0.8857,
+        "Z03-Z10": 0.6675,
+        "Z03-Z11": 0.7444,
+        "Z04-Z05": 0.9676,
+        "Z04-Z09": 0.8101,
+        "Z05-Z12": 0.6178,
+        "Z06-Z07": 0.2864,
+        "Z06-Z11": 0.2207,
+        "Z07-Z11": 0.3771,
+        "Z07-Z12": 0.4116,
+        "Z08-Z09": 0.5659,
+        "Z10-Z11": 0.2346,
+        "Z11-Z12": 0.3458
+      },
+      "qubo_notes": {
+        "unit": "person-seconds (인·초)",
+        "free_speed_ms": 1.19,
+        "walk_distance_limit_m": 30.0,
+        "lam_risk": 1.0,
+        "lam_risk_effective": 2.2232,
+        "lam_risk_balanced": true,
+        "kappa": 1.0,
+        "mean_time_person_s": 2727.11,
+        "mean_risk_term_person_s": 1226.67,
+        "mean_congestion_person_s": 6381.77,
+        "max_congestion_person_s": 13675.21,
+        "lam_dist": 8274.742,
+        "lam_one": 31523.586,
+        "distance_violation_ratio": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 0.9883,
+          "3": 0.579,
+          "4": 0.6667,
+          "5": 0.934,
+          "6": 0.0,
+          "7": 0.0,
+          "8": 0.8203,
+          "9": 0.2807,
+          "10": 0.4347,
+          "11": 0.8827
+        },
+        "congestion_pairs": {
+          "0-4": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "0-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "0-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "0-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "1-6": {
+            "edges": [
+              "EX2-Z06"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "1-7": {
+            "edges": [
+              "Z01-Z06"
+            ],
+            "cost_person_s": 5470.09
+          },
+          "2-3": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "2-5": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "2-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "3-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "4-7": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "4-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "4-10": {
+            "edges": [
+              "EX2-Z01",
+              "Z01-Z02"
+            ],
+            "cost_person_s": 13675.21
+          },
+          "5-11": {
+            "edges": [
+              "Z11-Z12"
+            ],
+            "cost_person_s": 1823.36
+          },
+          "7-9": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          },
+          "7-10": {
+            "edges": [
+              "EX2-Z01"
+            ],
+            "cost_person_s": 8205.13
+          }
+        },
+        "evidence": {
+          "T": "D2-FLOW-001 자유류 보행속도 1.19 m/s (NIST TN 1471)",
+          "S": "D2-FLOW-004 최대 단위폭 유동률 1.3 persons/(m·s) × 유효폭(D2-FLOW-005)",
+          "V": "D1-LAW-001 건축법 시행령 제34조제1항 보행거리 30 m"
+        }
+      },
+      "energy_stats": {
+        "min": 30675.982333540902,
+        "max": 718162.4063547108,
+        "mean": 207459.795
+      },
+      "baselines": [
+        {
+          "method": "Exact(brute-force)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30675.982333540902,
+          "time_s": 0.0317,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 28937.91,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 147.199,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 154.576,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "Greedy",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30675.982333540887,
+          "time_s": 0.0003,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 28937.91,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 147.199,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 154.576,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "SimulatedAnnealing",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30675.982333540887,
+          "time_s": 0.2031,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 28937.91,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 147.199,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 154.576,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "Random(best of 4096)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "energy": 30675.982333540887,
+          "time_s": 0.04,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 28937.91,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 147.199,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 154.576,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": -0.0,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z02→Z11→Z12"
+          }
+        },
+        {
+          "method": "독립 최단경로(Dijkstra 대응)",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 31174.830361735774,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 68199.8,
+            "makespan_s": 384.2,
+            "risk_exposure": 37136.05,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z03-Z11",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 205.7,
+                "risk_exposure": 141.635,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 384.2,
+                "risk_exposure": 262.616,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 498.848028,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        },
+        {
+          "method": "위험가중 최단경로",
+          "x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "energy": 31174.830361735774,
+          "time_s": 0.0,
+          "true_metrics": {
+            "valid": true,
+            "total_person_seconds": 68199.8,
+            "makespan_s": 384.2,
+            "risk_exposure": 37136.05,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z01-Z04",
+              "Z03-Z11",
+              "Z04-Z09"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 205.7,
+                "risk_exposure": 141.635,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z04→Z01→EX2",
+                "len_m": 38.42,
+                "time_s": 384.2,
+                "risk_exposure": 262.616,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": false
+              }
+            }
+          },
+          "gap_to_exact": 498.848028,
+          "routes": {
+            "W1": "Z01→EX2",
+            "W2": "Z03→Z11→Z12",
+            "W3": "Z06→EX2",
+            "W4": "Z09→Z04→Z01→EX2"
+          }
+        }
+      ],
+      "qaoa": [
+        {
+          "p": 1,
+          "params": [
+            1.4341985152683274,
+            2.718706675022985
+          ],
+          "expected_energy": 85291.8209612298,
+          "approx_ratio": 0.9206,
+          "prob_optimal": 0.003805,
+          "prob_optimal_vs_uniform": 15.58,
+          "time_s": 0.22,
+          "shots": 2048,
+          "best_sampled_energy": 30675.982333540902,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 28937.91,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 147.199,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 154.576,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        },
+        {
+          "p": 2,
+          "params": [
+            -1.3596056934442813,
+            0.7188913842291484,
+            4.099345747508698,
+            2.6701448526084466
+          ],
+          "expected_energy": 73733.37194081595,
+          "approx_ratio": 0.9374,
+          "prob_optimal": 0.005353,
+          "prob_optimal_vs_uniform": 21.92,
+          "time_s": 0.63,
+          "shots": 2048,
+          "best_sampled_energy": 30675.982333540902,
+          "best_sampled_x": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "sampled_optimal_found": true,
+          "best_sampled_true_metrics": {
+            "valid": true,
+            "total_person_seconds": 63781.5,
+            "makespan_s": 312.9,
+            "risk_exposure": 28937.91,
+            "shared_edges": 1,
+            "over_capacity_edges": [
+              "EX2-Z01",
+              "EX2-Z06",
+              "Z02-Z09",
+              "Z02-Z11",
+              "Z03-Z11",
+              "Z11-Z12"
+            ],
+            "distance_limit_ok": false,
+            "groups": {
+              "W1": {
+                "path": "Z01→EX2",
+                "len_m": 11.0,
+                "time_s": 110.0,
+                "risk_exposure": 40.112,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W2": {
+                "path": "Z03→Z11→Z12",
+                "len_m": 47.37,
+                "time_s": 221.8,
+                "risk_exposure": 147.199,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              },
+              "W3": {
+                "path": "Z06→EX2",
+                "len_m": 15.26,
+                "time_s": 152.6,
+                "risk_exposure": 19.838,
+                "n": 80,
+                "exit": "EX2",
+                "distance_ok": true
+              },
+              "W4": {
+                "path": "Z09→Z02→Z11→Z12",
+                "len_m": 56.48,
+                "time_s": 312.9,
+                "risk_exposure": 154.576,
+                "n": 80,
+                "exit": "Z12",
+                "distance_ok": false
+              }
+            }
+          },
+          "best_sampled_gap_to_exact": 0.0
+        }
+      ]
+    }
+  ],
+  "weather_sensitivity": [
+    {
+      "weather": "무풍(하위호환 검증)",
+      "params": null,
+      "risk_scores": {
+        "Z01": 0.4649,
+        "Z02": 0.4649,
+        "Z03": 0.9027,
+        "Z04": 1.0,
+        "Z05": 0.8054,
+        "Z06": 0.1,
+        "Z07": 0.3432,
+        "Z08": 0.5378,
+        "Z09": 0.4892,
+        "Z10": 0.1486,
+        "Z11": 0.2411,
+        "Z12": 0.2946
+      },
+      "optimal_routes": {
+        "W1": "Z01→EX2",
+        "W2": "Z03→Z11→Z12",
+        "W3": "Z06→EX2",
+        "W4": "Z09→Z04→Z01→EX2"
+      },
+      "makespan_s": 39.8,
+      "risk_exposure": 301.3,
+      "total_person_seconds": 637.7
+    },
+    {
+      "weather": "강풍 북풍 10 m/s",
+      "params": {
+        "wd_deg": 0.0,
+        "ws_ms": 10.0
+      },
+      "risk_scores": {
+        "Z01": 0.5136,
+        "Z02": 0.5136,
+        "Z03": 0.8997,
+        "Z04": 1.0,
+        "Z05": 0.8997,
+        "Z06": 0.1,
+        "Z07": 0.3231,
+        "Z08": 0.5237,
+        "Z09": 0.4735,
+        "Z10": 0.1226,
+        "Z11": 0.2178,
+        "Z12": 0.3206
+      },
+      "optimal_routes": {
+        "W1": "Z01→EX2",
+        "W2": "Z03→Z11→Z12",
+        "W3": "Z06→EX2",
+        "W4": "Z09→Z04→Z01→EX2"
+      },
+      "makespan_s": 39.8,
+      "risk_exposure": 307.57,
+      "total_person_seconds": 637.7
+    },
+    {
+      "weather": "강풍 동풍 10 m/s",
+      "params": {
+        "wd_deg": 90.0,
+        "ws_ms": 10.0
+      },
+      "risk_scores": {
+        "Z01": 0.5103,
+        "Z02": 0.4026,
+        "Z03": 0.7013,
+        "Z04": 0.7789,
+        "Z05": 1.0,
+        "Z06": 0.1156,
+        "Z07": 0.2552,
+        "Z08": 0.4103,
+        "Z09": 0.3716,
+        "Z10": 0.1,
+        "Z11": 0.1737,
+        "Z12": 0.2532
+      },
+      "optimal_routes": {
+        "W1": "Z01→EX2",
+        "W2": "Z03→Z11→Z12",
+        "W3": "Z06→EX2",
+        "W4": "Z09→Z04→Z01→EX2"
+      },
+      "makespan_s": 39.8,
+      "risk_exposure": 292.37,
+      "total_person_seconds": 637.7
+    },
+    {
+      "weather": "강풍 남풍 10 m/s",
+      "params": {
+        "wd_deg": 180.0,
+        "ws_ms": 10.0
+      },
+      "risk_scores": {
+        "Z01": 0.6643,
+        "Z02": 0.6311,
+        "Z03": 1.0,
+        "Z04": 0.9586,
+        "Z05": 0.8523,
+        "Z06": 0.1075,
+        "Z07": 0.4349,
+        "Z08": 0.4536,
+        "Z09": 0.4004,
+        "Z10": 0.1,
+        "Z11": 0.2538,
+        "Z12": 0.2383
+      },
+      "optimal_routes": {
+        "W1": "Z01→EX2",
+        "W2": "Z03→Z11→Z12",
+        "W3": "Z06→EX2",
+        "W4": "Z09→Z04→Z01→EX2"
+      },
+      "makespan_s": 39.8,
+      "risk_exposure": 390.87,
+      "total_person_seconds": 637.7
+    },
+    {
+      "weather": "강풍 서풍 10 m/s",
+      "params": {
+        "wd_deg": 270.0,
+        "ws_ms": 10.0
+      },
+      "risk_scores": {
+        "Z01": 0.421,
+        "Z02": 0.5587,
+        "Z03": 1.0,
+        "Z04": 0.7984,
+        "Z05": 0.7206,
+        "Z06": 0.1,
+        "Z07": 0.2902,
+        "Z08": 0.6262,
+        "Z09": 0.5737,
+        "Z10": 0.1888,
+        "Z11": 0.2607,
+        "Z12": 0.4135
+      },
+      "optimal_routes": {
+        "W1": "Z01→EX2",
+        "W2": "Z03→Z11→Z12",
+        "W3": "Z06→EX2",
+        "W4": "Z09→Z04→Z01→EX2"
+      },
+      "makespan_s": 39.8,
+      "risk_exposure": 358.79,
+      "total_person_seconds": 637.7
+    }
+  ],
+  "congestion_crossover": {
+    "rows": [
+      {
+        "total_workers": 24,
+        "per_group": 6,
+        "exact_energy": 1768.88,
+        "independent_shortest_energy": 1768.88,
+        "gap_person_s": 0.0,
+        "independent_is_optimal": true,
+        "mean_congestion_person_s": 35.9,
+        "mean_time_person_s": 204.53,
+        "exact_makespan_s": 39.8,
+        "independent_makespan_s": 39.8,
+        "exact_routes": {
+          "W1": "Z01→EX2",
+          "W2": "Z03→Z11→Z12",
+          "W3": "Z06→EX2",
+          "W4": "Z09→Z04→Z01→EX2"
+        }
+      },
+      {
+        "total_workers": 60,
+        "per_group": 15,
+        "exact_energy": 4595.28,
+        "independent_shortest_energy": 4595.28,
+        "gap_person_s": 0.0,
+        "independent_is_optimal": true,
+        "mean_congestion_person_s": 224.36,
+        "mean_time_person_s": 511.33,
+        "exact_makespan_s": 138.9,
+        "independent_makespan_s": 138.9,
+        "exact_routes": {
+          "W1": "Z01→EX2",
+          "W2": "Z03→Z11→Z12",
+          "W3": "Z06→EX2",
+          "W4": "Z09→Z04→Z01→EX2"
+        }
+      },
+      {
+        "total_workers": 120,
+        "per_group": 30,
+        "exact_energy": 9767.48,
+        "independent_shortest_energy": 9767.48,
+        "gap_person_s": 0.0,
+        "independent_is_optimal": true,
+        "mean_congestion_person_s": 897.44,
+        "mean_time_person_s": 1022.67,
+        "exact_makespan_s": 165.3,
+        "independent_makespan_s": 165.3,
+        "exact_routes": {
+          "W1": "Z01→EX2",
+          "W2": "Z03→Z11→Z12",
+          "W3": "Z06→EX2",
+          "W4": "Z09→Z04→Z01→EX2"
+        }
+      },
+      {
+        "total_workers": 200,
+        "per_group": 50,
+        "exact_energy": 17561.19,
+        "independent_shortest_energy": 17561.19,
+        "gap_person_s": -0.0,
+        "independent_is_optimal": true,
+        "mean_congestion_person_s": 2492.88,
+        "mean_time_person_s": 1704.45,
+        "exact_makespan_s": 384.2,
+        "independent_makespan_s": 384.2,
+        "exact_routes": {
+          "W1": "Z01→EX2",
+          "W2": "Z03→Z11→Z12",
+          "W3": "Z06→EX2",
+          "W4": "Z09→Z04→Z01→EX2"
+        }
+      },
+      {
+        "total_workers": 320,
+        "per_group": 80,
+        "exact_energy": 30675.98,
+        "independent_shortest_energy": 31174.83,
+        "gap_person_s": 498.85,
+        "independent_is_optimal": false,
+        "mean_congestion_person_s": 6381.77,
+        "mean_time_person_s": 2727.11,
+        "exact_makespan_s": 312.9,
+        "independent_makespan_s": 384.2,
+        "exact_routes": {
+          "W1": "Z01→EX2",
+          "W2": "Z03→Z11→Z12",
+          "W3": "Z06→EX2",
+          "W4": "Z09→Z02→Z11→Z12"
+        }
+      },
+      {
+        "total_workers": 480,
+        "per_group": 120,
+        "exact_energy": 47381.49,
+        "independent_shortest_energy": 52916.09,
+        "gap_person_s": 5534.6,
+        "independent_is_optimal": false,
+        "mean_congestion_person_s": 14358.97,
+        "mean_time_person_s": 4090.67,
+        "exact_makespan_s": 369.7,
+        "independent_makespan_s": 384.2,
+        "exact_routes": {
+          "W1": "Z01→EX2",
+          "W2": "Z03→Z11→Z12",
+          "W3": "Z06→EX2",
+          "W4": "Z09→Z02→Z11→Z12"
+        }
+      }
+    ],
+    "crossover_total_workers": 320,
+    "interpretation": "혼잡 이차항은 인원 제곱으로 커지므로 임계 인원 이상에서 '작업조별 독립 최단경로'가 전체 최적이 아니게 된다. 이 결합 구조가 QUBO/QAOA 적용의 정당한 근거이며, 임계 이하 규모에서는 고전 최단경로로 충분하다는 점도 함께 보고한다.",
+    "basis": "D6-WF-001/002는 현장 전체 인원 공개값(산업적 맥락)이고, 여기 값은 섹터 단위 합성 가정치다."
+  }
+}

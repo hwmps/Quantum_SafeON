@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-07-27T00:20:00+09:00",
+  "status": "BLOCKED",
+  "request_id": "D3",
+  "requested_dataset": "기상청 ASOS 108 서울·119 수원 풍향·풍속 시간자료",
+  "attempted_period_days": "365, 180, 90",
+  "collection_method": "공식 API허브 kma_sfctm3.php, 30일 이하 분할 요청",
+  "http_result": "403 Forbidden",
+  "secret_exposure": "없음",
+  "cause_assessment": "요청 기간 제한을 준수한 뒤에도 동일 403이므로 현재 KMA_API_KEY의 API허브 사용 권한·유효성 확인이 필요함",
+  "source_url": "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php",
+  "documentation_url": "https://apihub.kma.go.kr/apiList.do?apiSeq=2",
+  "checked_date": "2026-07-27",
+  "next_action": "PM이 API허브 마이페이지에서 키 유효성과 지상관측 시간자료 활용신청 상태를 확인한 뒤 로컬 .env의 KMA_API_KEY만 갱신",
+  "limitation": "관측값을 확보하지 못했으므로 대표 풍향·풍속 사례와 QUBO 입력값을 생성하지 않음"
+}

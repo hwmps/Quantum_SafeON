@@ -81,9 +81,52 @@ def wind_multiplier(feats, weather):
     return 1.0
 
 
-def zone_risk_scores(zones, incidents, weather=None):
-    """구역별 위험 점수 r_z ∈ [0.1, 1.0]. weather(기상청 풍속·풍향) 있으면 보정 반영."""
+# ── 풍향 방향성 보정 (P1-4, 2026-07-27 추가) ─────────────────────────────────
+# 모델링 가정: 누출·발화 가정 지점에서 풍하측(downwind)에 있는 구역일수록 확산 노출이 크다.
+# CFD가 아니라 방향 코사인 × 풍속 계수의 1차 근사이며, 벽 차폐·천장고·공조는 미반영.
+WIND_DIR_MAX_GAIN = 0.35   # 정면 풍하측 구역의 최대 가중 (+35%)
+WIND_REF_SPEED_MS = 10.0   # 가중이 최대가 되는 기준 풍속 (이상은 절단)
+WIND_MIN_SPEED_MS = 0.5    # 이 미만은 무풍으로 간주 → 보정 1.0 (기존 결과 하위 호환)
+
+
+def downwind_weight(src_xy, tgt_xy, weather):
+    """풍하측 방향 가중 ∈ [1.0, 1+WIND_DIR_MAX_GAIN].
+
+    기상청 관례상 wd_deg는 '바람이 불어오는 방향'이므로 연기·가스 이동 방향은 wd_deg+180°.
+    방위각 0°=북(+y), 90°=동(+x) 기준으로 이동 단위벡터를 만들고, 누출점→대상점 벡터와의
+    코사인 유사도(양수만)에 풍속 계수를 곱한다. 무풍(ws<0.5)이면 1.0을 반환해
+    기존 등방 모델과 정확히 동일한 결과를 준다.
+    """
+    import math
+    if not weather:
+        return 1.0
+    ws = float(weather.get("ws_ms") or 0.0)
+    wd = weather.get("wd_deg")
+    if wd is None or ws < WIND_MIN_SPEED_MS:
+        return 1.0
+    theta = math.radians(float(wd) + 180.0)          # 이동(풍하) 방향
+    dx_w, dy_w = math.sin(theta), math.cos(theta)     # 동/북 성분
+    dx, dy = tgt_xy[0] - src_xy[0], tgt_xy[1] - src_xy[1]
+    dist = math.hypot(dx, dy)
+    if dist < 1e-9:
+        return 1.0
+    cos_sim = (dx * dx_w + dy * dy_w) / dist
+    if cos_sim <= 0:
+        return 1.0
+    speed_factor = min(ws / WIND_REF_SPEED_MS, 1.0)
+    return 1.0 + WIND_DIR_MAX_GAIN * cos_sim * speed_factor
+
+
+def zone_risk_scores(zones, incidents, weather=None, source_zone=None):
+    """구역별 위험 점수 r_z ∈ [0.1, 1.0]. weather(기상청 풍속·풍향) 있으면 보정 반영.
+
+    source_zone: 누출·발화 가정 지점 구역 id. 지정하면 풍향 방향성 보정을 추가 적용한다
+    (미지정 또는 무풍이면 기존 동작과 동일 — 하위 호환).
+    """
     fw = feature_weights(incidents)
+    src_xy = None
+    if source_zone and source_zone in zones:
+        src_xy = (zones[source_zone]["cx"], zones[source_zone]["cy"])
     raw = {}
     for zid, z in zones.items():
         feats = ZONE_FEATURES.get(z["type"], {})
@@ -91,10 +134,38 @@ def zone_risk_scores(zones, incidents, weather=None):
         if z["type"] == "main_corridor":
             s *= CORRIDOR_BONUS
         s *= wind_multiplier(feats, weather)
+        if src_xy is not None:
+            s *= downwind_weight(src_xy, (z["cx"], z["cy"]), weather)
         raw[zid] = s
     lo, hi = min(raw.values()), max(raw.values())
     span = (hi - lo) or 1.0
     return {zid: 0.1 + 0.9 * (raw[zid] - lo) / span for zid in raw}
+
+
+def edge_risks(zones, risk, edges, weather=None, source_zone=None, default_risk=None):
+    """간선(통로) 통과 위험 w_e — 대피 QUBO의 신규 입력.
+
+    w_e = (양 끝 구역 위험 평균) × (간선 중점의 풍하측 가중)
+    - 구역 위험 r_z는 이미 정규화된 [0.1,1.0] 값을 그대로 사용 (센서 QUBO와 동일 소스).
+    - 간선 중점에 방향성 가중을 다시 적용해 '연기가 지나가는 통로'를 벌점화한다.
+    edges: {(u,v): {"length_m":..., "width_m":...}} 형태. 반환 {(u,v): w_e}
+    """
+    src_xy = None
+    if source_zone and source_zone in zones:
+        src_xy = (zones[source_zone]["cx"], zones[source_zone]["cy"])
+    # 구역 위험이 정의되지 않은 노드(예: 합성 비상구 EX2)는 최소 위험으로 취급하고 명시한다.
+    if default_risk is None:
+        default_risk = min(risk.values()) if risk else 0.1
+    out = {}
+    for (u, v) in edges:
+        base = (risk.get(u, default_risk) + risk.get(v, default_risk)) / 2.0
+        if src_xy is None:
+            out[(u, v)] = base
+            continue
+        mx = (zones[u]["cx"] + zones[v]["cx"]) / 2.0
+        my = (zones[u]["cy"] + zones[v]["cy"]) / 2.0
+        out[(u, v)] = base * downwind_weight(src_xy, (mx, my), weather)
+    return out
 
 
 def hard_cover_zones(zones):
