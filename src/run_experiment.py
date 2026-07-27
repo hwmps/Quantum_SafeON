@@ -169,11 +169,21 @@ if __name__ == "__main__":
     # 사용법:
     #   python src/run_experiment.py                          # 기본(화재 발생원 없음)
     #   python src/run_experiment.py --fire 특수가스_배관실_누출  # 화재 시나리오 적용
+    #   python src/run_experiment.py --fire                    # config 의 대표 시나리오(PM 확정) 적용
     #   python src/run_experiment.py --fire-list               # 프리셋 목록
     args = sys.argv[1:]
     if args and args[0] == "--fire-list":
+        cfg = fire_scenario.load_config()
         for k, v in fire_scenario.list_presets().items():
-            print(f"- {k}: {v.get('설명', '')}")
+            mark = "  ← 대표(PM 확정)" if k == cfg.get("default") else ""
+            print(f"- {k}: {v.get('설명', '')}{mark}")
         sys.exit(0)
-    fire_arg = args[1] if len(args) > 1 and args[0] == "--fire" else None
+    fire_arg = None
+    if args and args[0] == "--fire":
+        # 이름을 생략하면 config/fire_scenarios.json 의 default(대표 시나리오)를 쓴다.
+        fire_arg = args[1] if len(args) > 1 else fire_scenario.load_config().get("default")
+        if not fire_arg:
+            sys.exit("config/fire_scenarios.json 에 default 가 없다 — 시나리오 이름을 직접 지정할 것")
+        print(f"화재 시나리오: {fire_arg}"
+              + (" (config default)" if len(args) == 1 else ""))
     main(fire_arg)

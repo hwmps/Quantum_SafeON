@@ -1,11 +1,11 @@
 {
-  "점검시각": "2026-07-27 11:59:35",
+  "점검시각": "2026-07-27 15:54:33",
   "지점": "108",
-  "기준시각": "202607270900",
+  "기준시각": "202607271300",
   "점검": [
     {
       "항목": "단일시각 조회(kma_sfctm2)",
-      "요청": "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php?tm=202607270900&stn=108&help=0&authKey=<KMA_API_KEY>",
+      "요청": "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php?tm=202607271300&stn=108&help=0&authKey=<KMA_API_KEY>",
       "결과": "성공",
       "확보_행수": 1,
       "비고": "기존 승인분"

@@ -391,9 +391,17 @@ document.getElementById('firePreset').onchange=e=>{
     const d=await(await fetch(API+'/fire_presets')).json();
     firePresets=d.presets||{};
     const sel=document.getElementById('firePreset');
-    Object.keys(firePresets).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o);});
+    Object.keys(firePresets).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k+(k===d.default?' ★ 대표(PM 확정)':'');sel.appendChild(o);});
+    // UI 기본값 = PM 확정 대표 시나리오의 유형·반경·세기 (위치는 도면 클릭으로 지정)
     const u=d.ui_기본값||{};
     if(u.radius_m)document.getElementById('hzR').value=u.radius_m;
+    if(u.kind)document.getElementById('hzKind').value=u.kind;
+    if(u.intensity!=null)document.getElementById('hzI').value=u.intensity;
+    if(d.default){
+      sel.value=d.default;
+      hzMsg(`대표 시나리오 기본 적용: ${d.default} (${(firePresets[d.default]||{}).설명||''}) — `
+           +`유형·반경·세기가 채워져 있습니다. 도면에서 [재해 발생원 추가] 모드로 위치를 클릭하세요.`,'#8ab4f8');
+    }
   }catch(e){/* 서버 미실행 */}
 })();
 

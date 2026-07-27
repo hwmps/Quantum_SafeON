@@ -387,6 +387,8 @@ class Handler(BaseHTTPRequestHandler):
             # UI 재해 시나리오 선택지 (config/fire_scenarios.json). 센서 연동 전 예시 설정용.
             cfg = fire_scenario.load_config()
             self._send(200, {"ui_기본값": cfg.get("ui_기본값", {}),
+                             "default": cfg.get("default"),  # PM 확정 대표 시나리오
+                             "대표시나리오_비고": cfg.get("_대표시나리오_확정", ""),
                              "presets": {k: {"설명": v.get("설명", ""),
                                              "sources": v.get("sources", [])}
                                          for k, v in cfg.get("presets", {}).items()},
