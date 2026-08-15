@@ -718,6 +718,20 @@ document.getElementById('optBtn').onclick=async()=>{
     const qaoaStates = document.getElementById('qaoaStates');
     const topStates = Array.isArray(q.top_states) ? q.top_states : [];
 
+    // Compare displayed QAOA states against the exact classical optimum.
+    // top_states energies are rounded, so use a small numerical tolerance.
+    const exactEnergy = Number(ex.energy);
+    const energyTolerance = 1e-4;
+    const matchesExactOptimum = state => {
+      const stateEnergy = Number(state.energy);
+      return Number.isFinite(exactEnergy)
+        && Number.isFinite(stateEnergy)
+        && Math.abs(stateEnergy - exactEnergy) <= energyTolerance;
+    };
+
+    const exactOptimalState = topStates.find(matchesExactOptimum);
+    const exactOptimalRank = exactOptimalState ? exactOptimalState.rank : null;
+
     if (topStates.length > 0) {
       qaoaPanel.style.display = '';
 
@@ -735,6 +749,7 @@ document.getElementById('optBtn').onclick=async()=>{
         );
 
         const sensors = (state.selected_sensors || []).join(', ');
+        const matchesExact = matchesExactOptimum(state);
 
         return `
           <div class="qaoa-state-card" style="
@@ -753,6 +768,17 @@ document.getElementById('optBtn').onclick=async()=>{
               <span>
                 <b>#${state.rank}</b>
                 <code style="margin-left:6px;">${esc(state.bitstring)}</code>
+                ${matchesExact ? `
+                  <span style="
+                    margin-left:8px;
+                    padding:2px 6px;
+                    border:1px solid #7fc97f;
+                    border-radius:999px;
+                    color:#7fc97f;
+                    font-size:11px;
+                    white-space:nowrap;
+                  ">✓ Matches Exact Optimum</span>
+                ` : ''}
               </span>
 
               <b style="color:#8ab4f8;">
@@ -802,9 +828,10 @@ document.getElementById('optBtn').onclick=async()=>{
     msg.textContent=`✓ Optimization complete (${d.time_s}s)`+(d.warning?` — ${d.warning}`:'');msg.style.color=d.warning?'#f0b060':'#7fc97f';
     res.innerHTML=`<b>Selected Sensors (${d.selected_ids.length}/${d.n_candidates})</b>: ${d.selected_ids.join(', ')}<br>`+
       `QAOA [${q.backend}]: Energy ${q.energy}, Weighted Coverage ${q.weighted_coverage}`+
-      (q.optimal_found!==undefined?`, Optimal Solution Found: ${q.optimal_found?'Yes':'No'}`:'')+
+      (q.optimal_found!==undefined?`, Selected QAOA State Matches Exact Optimum: ${q.optimal_found?'Yes':'No'}`:'')+
       (q.job_id?`<br>IonQ job: ${q.job_id}`:'')+
       `<br>Exact Baseline: Energy ${ex.energy}, Coverage ${ex.weighted_coverage}`+
+      `<br>Exact-Optimal State Present Among Displayed QAOA States: ${exactOptimalRank ? `Yes (#${exactOptimalRank})` : 'No'}`+
       `<br><span style="color:#999">${esc(d.notes)}</span>`;
     // --- 재해 해설 패널 (PM 1순위: 재해 설명) ---
     const hzw=document.getElementById('hzWhy');
