@@ -103,21 +103,21 @@ The current public demo uses a **CubiCasa5K residential floor plan** as an inter
 
 ## 3.1 Binary Sensor Decisions
 
-For each candidate sensor location \(i\):
+For each candidate sensor location `i`, define a binary decision variable:
 
 ```math
 x_i \in \{0,1\}
 ```
 
-where
+where:
 
-- \(x_i = 1\): install a sensor at candidate \(i\)
-- \(x_i = 0\): do not install a sensor
+- `x_i = 1`: install a sensor at candidate `i`
+- `x_i = 0`: do not install a sensor
 
-For \(N\) candidates, a solution is represented as a binary vector:
+For `N` candidate locations, a sensor-placement solution is represented as:
 
 ```math
-x = (x_1, x_2, \dots, x_N)
+\mathbf{x} = (x_1, x_2, \ldots, x_N)
 ```
 
 For example:
@@ -132,17 +132,17 @@ represents one sensor-placement state over 12 candidate locations.
 
 ## 3.2 Sensor-Budget Constraint
 
-If exactly \(K\) sensors should be installed, the constraint can be encoded as a quadratic penalty:
+If exactly `K` sensors should be installed, the constraint is encoded using the quadratic penalty:
 
 ```math
-P_K(x)
+P_K(\mathbf{x})
 =
 \left(
 \sum_{i=1}^{N} x_i - K
 \right)^2
 ```
 
-This penalty is minimized when exactly \(K\) sensor candidates are selected.
+This penalty reaches its minimum value when exactly `K` sensor candidates are selected.
 
 ---
 
@@ -150,8 +150,8 @@ This penalty is minimized when exactly \(K\) sensor candidates are selected.
 
 Let:
 
-- \(r_z\) = modeled risk weight of zone \(z\)
-- \(a_{zi} \in [0,1]\) = fractional coverage of zone \(z\) by sensor candidate \(i\)
+- $r_z$ = modeled risk weight of zone $z$
+- $a_{zi} \in [0,1]$ = fractional coverage of zone $z$ by sensor candidate $i$
 
 The interactive optimization uses a quadratic surrogate for coverage so that the objective remains a QUBO.
 
@@ -168,7 +168,7 @@ H_{\mathrm{demo}}(x)
 +
 \rho
 \sum_z r_z
-\sum_{i<j}
+\sum_{i \lt j}
 a_{zi}a_{zj}x_ix_j
 +
 \lambda_K
@@ -200,7 +200,7 @@ rewards sensors that cover higher-risk zones.
 ```math
 \rho
 \sum_z r_z
-\sum_{i<j}
+\sum_{i \lt j}
 a_{zi}a_{zj}x_ix_j
 ```
 
@@ -215,7 +215,7 @@ penalizes pairs of sensors whose coverage overlaps strongly in the same risk-wei
 \right)^2
 ```
 
-encourages the solution to select exactly \(K\) sensors.
+encourages the solution to select exactly $K$ sensors.
 
 The interactive demo deliberately omits installation cost and some domain-specific constraints to keep the live optimization lightweight and interpretable.
 
@@ -247,7 +247,7 @@ H_{\mathrm{coverage}}
 -\sum_z r_z\sum_i a_{zi}x_i
 +
 \sum_z r_z
-\sum_{i<j}
+\sum_{i \lt j}
 a_{zi}a_{zj}x_ix_j
 ```
 
@@ -283,7 +283,7 @@ H_K
 \right)^2
 ```
 
-If \(\lambda_K\) is not explicitly provided, the implementation scales it from the largest absolute linear QUBO coefficient.
+If $\lambda_K$ is not explicitly provided, the implementation scales it from the largest absolute linear QUBO coefficient.
 
 ### Required-zone coverage
 
@@ -362,7 +362,7 @@ H_C
 =
 \sum_i h_i Z_i
 +
-\sum_{i<j} J_{ij} Z_i Z_j
+\sum_{i \lt j} J_{ij} Z_i Z_j
 ```
 
 QAOA prepares a parameterized quantum state:
@@ -376,7 +376,7 @@ e^{-i\gamma_l H_C}
 |+\rangle^{\otimes N}
 ```
 
-where \(H_M\) is the mixer Hamiltonian.
+where $H_M$ is the mixer Hamiltonian.
 
 The final state can be expressed as:
 
@@ -449,7 +449,7 @@ The original experiments compared QAOA against classical optimization methods in
 - Simulated Annealing
 - Random baseline
 
-For the 12-variable sensor-placement problem with \(K=6\):
+For the 12-variable sensor-placement problem with $K=6$:
 
 | Detection Radius | Exact Weighted Coverage | QAOA p=1 | QAOA p=2 |
 |---|---:|:---:|:---:|
@@ -485,9 +485,9 @@ C_{\text{congestion}}
 
 where:
 
-- \(d_e\) = segment distance
-- \(r_e\) = modeled risk along the segment
-- \(C_{\text{congestion}}\) = penalty for shared evacuation corridors
+- $d_e$ = segment distance
+- $r_e$ = modeled risk along the segment
+- $C_{\text{congestion}}$ = penalty for shared evacuation corridors
 
 This means the system can prefer a slightly longer path when it reduces modeled hazard exposure.
 
