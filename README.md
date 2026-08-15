@@ -105,9 +105,9 @@ The current public demo uses a **CubiCasa5K residential floor plan** as an inter
 
 For each candidate sensor location \(i\):
 
-$$
+```math
 x_i \in \{0,1\}
-$$
+```
 
 where
 
@@ -116,9 +116,9 @@ where
 
 For \(N\) candidates, a solution is represented as a binary vector:
 
-$$
+```math
 x = (x_1, x_2, \dots, x_N)
-$$
+```
 
 For example:
 
@@ -134,13 +134,13 @@ represents one sensor-placement state over 12 candidate locations.
 
 If exactly \(K\) sensors should be installed, the constraint can be encoded as a quadratic penalty:
 
-$$
+```math
 P_K(x)
 =
 \left(
 \sum_{i=1}^{N} x_i - K
 \right)^2
-$$
+```
 
 This penalty is minimized when exactly \(K\) sensor candidates are selected.
 
@@ -161,7 +161,7 @@ The interactive optimization uses a quadratic surrogate for coverage so that the
 
 The current web demo uses the following objective:
 
-$$
+```math
 H_{\mathrm{demo}}(x)
 =
 -\sum_z r_z \sum_i a_{zi}x_i
@@ -175,45 +175,45 @@ a_{zi}a_{zj}x_ix_j
 \left(
 \sum_i x_i-K
 \right)^2
-$$
+```
 
 with current defaults:
 
-$$
+```math
 \rho = 0.35,
 \qquad
 \lambda_K = 2.0
-$$
+```
 
 The three terms have distinct roles:
 
 1. **Coverage reward**
 
-$$
+```math
 -\sum_z r_z \sum_i a_{zi}x_i
-$$
+```
 
 rewards sensors that cover higher-risk zones.
 
 2. **Redundant-coverage penalty**
 
-$$
+```math
 \rho
 \sum_z r_z
 \sum_{i<j}
 a_{zi}a_{zj}x_ix_j
-$$
+```
 
 penalizes pairs of sensors whose coverage overlaps strongly in the same risk-weighted zones.
 
 3. **Sensor-budget penalty**
 
-$$
+```math
 \lambda_K
 \left(
 \sum_i x_i-K
 \right)^2
-$$
+```
 
 encourages the solution to select exactly \(K\) sensors.
 
@@ -227,7 +227,7 @@ The original experimental pipeline uses a richer formulation.
 
 Conceptually:
 
-$$
+```math
 H_{\mathrm{full}}(x)
 =
 H_{\mathrm{coverage}}
@@ -237,11 +237,11 @@ H_{\mathrm{cost}}
 H_K
 +
 H_{\mathrm{required}}
-$$
+```
 
 ### Risk-weighted coverage and overlap
 
-$$
+```math
 H_{\mathrm{coverage}}
 =
 -\sum_z r_z\sum_i a_{zi}x_i
@@ -249,7 +249,7 @@ H_{\mathrm{coverage}}
 \sum_z r_z
 \sum_{i<j}
 a_{zi}a_{zj}x_ix_j
-$$
+```
 
 The first term rewards coverage, while the quadratic term discourages redundant placement.
 
@@ -257,31 +257,31 @@ The first term rewards coverage, while the quadratic term discourages redundant 
 
 Candidate installation cost is normalized by the maximum candidate cost:
 
-$$
+```math
 H_{\mathrm{cost}}
 =
 w_{\mathrm{cost}}
 \sum_i
 \frac{c_i}{c_{\max}}
 x_i
-$$
+```
 
 with the experimental default:
 
-$$
+```math
 w_{\mathrm{cost}} = 0.35
-$$
+```
 
 ### Sensor-count constraint
 
-$$
+```math
 H_K
 =
 \lambda_K
 \left(
 \sum_i x_i-K
 \right)^2
-$$
+```
 
 If \(\lambda_K\) is not explicitly provided, the implementation scales it from the largest absolute linear QUBO coefficient.
 
@@ -291,19 +291,19 @@ For zones designated as required-coverage zones, the implementation adds an addi
 
 For one valid covering sensor:
 
-$$
+```math
 H_z
 =
 \lambda_H(1-x_i)
-$$
+```
 
 For two valid covering sensors:
 
-$$
+```math
 H_z
 =
 \lambda_H(1-x_i)(1-x_j)
-$$
+```
 
 For three or more valid candidates, the full product would introduce higher-order terms. Because the solver pipeline expects a QUBO, the implementation uses a **quadratic truncation** rather than representing the higher-order polynomial exactly.
 
@@ -317,7 +317,7 @@ The quadratic objective is used for optimization, but the selected configuration
 
 For each zone:
 
-$$
+```math
 c_z(x)
 =
 1-
@@ -325,11 +325,11 @@ c_z(x)
 \left(
 1-a_{zi}x_i
 \right)
-$$
+```
 
 The overall risk-weighted coverage is then:
 
-$$
+```math
 C_{\mathrm{true}}(x)
 =
 \frac{
@@ -337,7 +337,7 @@ C_{\mathrm{true}}(x)
 }{
 \sum_z r_z
 }
-$$
+```
 
 This distinction is important:
 
@@ -351,46 +351,46 @@ This allows optimization to remain quadratic without pretending that overlapping
 
 A QUBO problem can be mapped to an Ising Hamiltonian using the binary-to-spin relation:
 
-$$
+```math
 x_i = \frac{1-z_i}{2}
-$$
+```
 
 The resulting cost Hamiltonian can be written in the form:
 
-$$
+```math
 H_C
 =
 \sum_i h_i Z_i
 +
 \sum_{i<j} J_{ij} Z_i Z_j
-$$
+```
 
 QAOA prepares a parameterized quantum state:
 
-$$
+```math
 |\psi(\boldsymbol{\gamma},\boldsymbol{\beta})\rangle
 =
 \prod_{l=1}^{p}
 e^{-i\beta_l H_M}
 e^{-i\gamma_l H_C}
 |+\rangle^{\otimes N}
-$$
+```
 
 where \(H_M\) is the mixer Hamiltonian.
 
 The final state can be expressed as:
 
-$$
+```math
 |\psi\rangle
 =
 \sum_x \alpha_x |x\rangle
-$$
+```
 
 and each computational-basis state has probability
 
-$$
+```math
 P(x) = |\alpha_x|^2
-$$
+```
 
 ---
 
@@ -471,7 +471,7 @@ Evacuation routing uses a risk-aware objective rather than distance alone.
 
 A simplified route cost is:
 
-$$
+```math
 C_{\text{route}}
 =
 \sum_e
@@ -481,7 +481,7 @@ d_e
 \right)
 +
 C_{\text{congestion}}
-$$
+```
 
 where:
 
@@ -725,13 +725,13 @@ Potential future research directions include richer industrial floor-plan modeli
 
 ## Tech Stack
 
-**Languages:** Python, JavaScript, HTML/CSS
-**Optimization:** QUBO, Exact Search, Greedy, Simulated Annealing, QAOA
-**Quantum:** Qiskit, IonQ integration
-**Scientific Computing:** NumPy
-**Backend:** Python HTTP server
-**Visualization:** HTML Canvas
-**Data / Modeling:** Hazard scenarios, weather observations, evacuation graphs
+- **Languages:** Python, JavaScript, HTML/CSS
+- **Optimization:** QUBO, Exact Search, Greedy, Simulated Annealing, QAOA
+- **Quantum:** Qiskit, IonQ integration
+- **Scientific Computing:** NumPy
+- **Backend:** Python HTTP server
+- **Visualization:** HTML Canvas
+- **Data / Modeling:** Hazard scenarios, weather observations, evacuation graphs
 
 ---
 
