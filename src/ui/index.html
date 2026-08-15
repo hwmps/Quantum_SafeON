@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>QRC2026 센서 배치 UI (시안 v0.4)</title>
+<title>Quantum SafeON — Interactive QUBO/QAOA Safety Optimization Demo</title>
 <style>
   body{font-family:'Malgun Gothic',sans-serif;margin:0;display:flex;height:100vh;background:#1e222a;color:#e8e8e8}
   #side{width:320px;padding:14px;background:#262b35;overflow-y:auto;flex-shrink:0}
@@ -56,55 +56,55 @@
 </head>
 <body>
 <div id="side">
-  <h1>QRC2026 센서 배치 시안 <small>v0.4</small></h1>
+  <h1>Quantum SafeON <small>Interactive QUBO/QAOA Safety Optimization Demo</small></h1>
 
-  <h2>1. 도면 업로드</h2>
+  <h2>1. Floor Plan</h2>
   <input type="file" id="imgIn">
   <div id="fileMsg" class="note"></div>
-  <label>현장 가로 크기 (m) — 축척 환산용</label>
+  <label>Site Width (m) — used for scale conversion</label>
   <input type="number" id="siteW" value="60" min="1">
 
-  <h2>2. 반경 설정</h2>
-  <label>모드</label>
+  <h2>2. Detection Radius</h2>
+  <label>Mode</label>
   <select id="rMode">
-    <option value="auto">자동 (시나리오 반경)</option>
-    <option value="manual">수동 (직접 입력)</option>
+    <option value="auto">Automatic (scenario-based radius)</option>
+    <option value="manual">Manual</option>
   </select>
-  <label>시나리오 (자동 모드)</label>
+  <label>Scenario (Automatic Mode)</label>
   <select id="scen">
     <option value="3">low — 3 m</option>
     <option value="5" selected>nominal — 5 m</option>
     <option value="8">high — 8 m</option>
   </select>
-  <label>수동 반경 (m)</label>
+  <label>Manual Radius (m)</label>
   <input type="number" id="rManual" value="5" min="0.5" step="0.5">
 
-  <h2>3. 센서 배치</h2>
-  <label>도면 클릭 시 동작</label>
+  <h2>3. Candidate Sensor Placement</h2>
+  <label>Floor Plan Click Action</label>
   <select id="clickMode">
-    <option value="sensor" selected>센서 추가</option>
-    <option value="hazard">재해 발생원 추가</option>
-    <option value="move">선택한 재해 위치 이동</option>
-    <option value="exit">출구 추가</option>
-    <option value="origin">작업자 위치 추가</option>
+    <option value="sensor" selected>Add Sensor Candidate</option>
+    <option value="hazard">Add Hazard Source</option>
+    <option value="move">Move Selected Hazard</option>
+    <option value="exit">Add Exit</option>
+    <option value="origin">Add Worker Location</option>
   </select>
   <div id="list"></div>
-  <button class="warn" id="clearBtn">센서 전체 삭제</button>
+  <button class="warn" id="clearBtn">Clear All Sensors</button>
 
-  <h2>4. 재해 시나리오 (예시 설정, 다중 가능)</h2>
-  <p class="note">현재 데모는 실제 감지 센서와 연동되어 있지 않습니다.
-  아래에서 <b>재해 유형·위치·반경을 예시로 설정</b>하면 그 지점을 기준으로 구역 위험도가 재계산됩니다.
-  <b>유형이 다른 재해를 여러 건 동시에</b> 추가할 수 있고, 도면을 클릭해 위치를 지정·이동할 수 있습니다.
-  (추후 센서 연동 시 이 목록이 센서 신호로 자동 대체됩니다)</p>
-  <label><input type="checkbox" id="hzOn" checked style="width:auto;margin-right:6px">재해 시나리오 적용</label>
-  <label>프리셋 (유형·반경 기본값 불러오기)</label>
-  <select id="firePreset"><option value="">— 직접 입력 —</option></select>
-  <label>새로 추가할 재해 — 유형 / 반경(m) / 세기(0~1)</label>
+  <h2>4. Hazard Scenarios</h2>
+  <p class="note">This demo is not connected to live physical sensors.
+  Configure one or more <b>hazard sources by type, location, radius, and intensity</b> to recompute zone-level risk scores.
+  Hazard locations can be placed or moved directly on the floor plan.
+  In a production system, these manual inputs could be replaced by live sensor feeds.</p>
+  <label><input type="checkbox" id="hzOn" checked style="width:auto;margin-right:6px">Enable Hazard Scenarios</label>
+  <label>Preset — load default hazard type and radius</label>
+  <select id="firePreset"><option value="">— Custom —</option></select>
+  <label>New Hazard — Type / Radius (m) / Intensity (0–1)</label>
   <div style="display:flex;gap:4px">
     <select id="hzKind" style="width:44%">
-      <option value="fire" selected>화재</option>
-      <option value="gas_leak">가스 누출</option>
-      <option value="smoke">연기</option>
+      <option value="fire" selected>Fire</option>
+      <option value="gas_leak">Gas Leak</option>
+      <option value="smoke">Smoke</option>
     </select>
     <input type="number" id="hzR" value="6" min="0.5" step="0.5" style="width:28%">
     <input type="number" id="hzI" value="1" min="0" max="1" step="0.1" style="width:28%">
@@ -113,80 +113,93 @@
     <input type="number" id="hzX" value="15" step="0.5" placeholder="x(m)" style="width:50%">
     <input type="number" id="hzY" value="10" step="0.5" placeholder="y(m)" style="width:50%">
   </div>
-  <button id="hzAdd">+ 재해 추가 (좌표 입력분)</button>
+  <button id="hzAdd">+ Add Hazard</button>
   <div id="hzList"></div>
-  <button class="warn" id="hzClear">재해 전체 삭제</button>
+  <button class="warn" id="hzClear">Clear All Hazards</button>
   <div id="hzMsg" class="note"></div>
 
-  <h2>5. 기상 (풍향·풍속)</h2>
-  <label><input type="checkbox" id="wxOn" checked style="width:auto;margin-right:6px">기상 보정 적용 (관측 대표값)</label>
-  <div id="wxPanel" class="why">기상 관측값을 불러오는 중…</div>
+  <h2>5. Weather Conditions</h2>
+  <label><input type="checkbox" id="wxOn" checked style="width:auto;margin-right:6px">Apply Weather Adjustment (Representative Observation)</label>
+  <div id="wxPanel" class="why">Loading weather observations...</div>
 
-  <h2>6. 대피 출구 · 작업자 위치 (입력값)</h2>
-  <p class="note"><b>출구는 입력값입니다.</b> 도면 클릭([출구 추가] 모드) 또는 좌표 입력으로 지정하세요.
-  지정하지 않으면 격자 네 모서리를 출구로 <b>가정</b>합니다(결과에 가정임이 표기됩니다).<br>
-  작업자 위치를 지정하면 그 지점에서 출발하는 경로만, 지정하지 않으면 <b>모든 구역</b>에서
-  출발하는 경로를 계산해 구역별 최적 출구를 보여줍니다. 인원을 넣으면 통로 혼잡 지연(초)까지 계산합니다.</p>
-  <label>출구 이름 / x, y (m)</label>
+  <h2>6. Evacuation Inputs</h2>
+  <p class="note"><b>Evacuation exits are user-defined inputs.</b> Add exits by clicking the floor plan in Add Exit mode or by entering coordinates.
+  If no exits are specified, the four grid corners are <b>assumed</b> to be exits and the assumption is reported in the results.<br>
+  If worker locations are provided, evacuation routes are computed from those locations. Otherwise, routes are evaluated from <b>all zones</b>.
+  The system selects the best exit for each origin and, when worker counts are provided, also estimates congestion delay along evacuation paths.</p>
+  <label>Exit Name / x, y (m)</label>
   <div style="display:flex;gap:4px">
-    <input type="text" id="exName" placeholder="예: 정문" style="width:40%">
+    <input type="text" id="exName" placeholder="e.g., Main Exit" style="width:40%">
     <input type="number" id="exX" value="28" step="0.5" style="width:30%">
     <input type="number" id="exY" value="10" step="0.5" style="width:30%">
   </div>
-  <button id="exAdd">+ 출구 추가</button>
+  <button id="exAdd">+ Add Exit</button>
   <div id="exList"></div>
-  <button class="warn" id="exClear">출구 전체 삭제</button>
-  <label>작업자 위치 이름 / x, y (m) / 인원</label>
+  <button class="warn" id="exClear">Clear All Exits</button>
+  <label>Worker Location / x, y (m) / Occupancy</label>
   <div style="display:flex;gap:4px">
-    <input type="text" id="orName" placeholder="예: W1" style="width:28%">
+    <input type="text" id="orName" placeholder="e.g., W1" style="width:28%">
     <input type="number" id="orX" value="10" step="0.5" style="width:24%">
     <input type="number" id="orY" value="10" step="0.5" style="width:24%">
     <input type="number" id="orN" value="12" min="1" step="1" style="width:24%">
   </div>
-  <button id="orAdd">+ 작업자 위치 추가</button>
+  <button id="orAdd">+ Add Worker Location</button>
   <div id="orList"></div>
-  <button class="warn" id="orClear">작업자 위치 전체 삭제</button>
+  <button class="warn" id="orClear">Clear All Worker Locations</button>
   <div id="evMsg" class="note"></div>
 
-  <h2>7. 내보내기</h2>
-  <button id="exportBtn">센서 좌표 JSON 다운로드</button>
-  <p class="note">내보낸 JSON(미터 좌표)은 QUBO 파이프라인의 후보점 입력으로 사용할 예정입니다.<br>
-  ※ 시안 단계: 벽·차폐 미반영, 커버리지는 단순 원형 가정.</p>
+  <h2>7. Export</h2>
+  <button id="exportBtn">Export Sensor Coordinates as JSON</button>
+  <p class="note">Exported sensor coordinates can be used as candidate locations for the QUBO optimization pipeline.<br>
+  Demo limitation: wall occlusion and physical obstructions are not modeled; coverage is approximated using circular detection regions.</p>
 
-  <h2>8. 최적화 실행 (테스트본)</h2>
-  <label>설치할 센서 수 K</label>
+  <h2>8. QUBO / QAOA Optimization</h2>
+  <label>Number of Sensors to Install (K)</label>
   <input type="number" id="optK" value="6" min="1" max="14">
-  <label>구역 격자 (행 × 열)</label>
+  <label>Zone Grid (Rows × Columns)</label>
   <div style="display:flex;gap:4px">
     <input type="number" id="gridR" value="3" min="1" max="6" style="width:50%">
     <input type="number" id="gridC" value="4" min="1" max="6" style="width:50%">
   </div>
-  <label>양자 백엔드</label>
+  <label>Quantum Backend</label>
   <select id="qBackend">
-    <option value="ideal" selected>Ideal Simulator (로컬, 즉시)</option>
-    <option value="ionq_sim">IonQ 클라우드 시뮬레이터 (무료, 수 초~수 분)</option>
+    <option value="ideal" selected>Ideal Statevector Simulator (Local)</option>
+    <option value="ionq_sim">IonQ Cloud Simulator</option>
   </select>
-  <button id="optBtn">QUBO + QAOA 최적화 실행</button>
+  <button id="optBtn">Run QUBO + QAOA Optimization</button>
   <div id="optMsg" class="note"></div>
   <div id="optResult" class="note" style="color:#cfe3ff"></div>
-  <div id="optExplain"></div>
-  <p class="note">※ 테스트본: 균일 격자 구역·균일 비용 가정.
-  실제 파이프라인(위험 점수·법적 제약·실비용)과 다르며 실기 QPU는 호출하지 않습니다.
-  서버 실행 필요: <code>python src/ui/server.py</code></p>
+
+  <div id="qaoaPanel" style="display:none; margin-top:14px;">
+  <div style="font-weight:700; color:#cfe3ff; margin-bottom:8px;">
+    QAOA State Distribution
+  </div>
+
+  <div class="note" style="margin-bottom:10px;">
+    Most probable computational-basis states from the optimized QAOA statevector. 
+  </div>
+
+  <div id="qaoaStates"></div>
+</div>
+<div id="optExplain"></div>
+  <p class="note">This interactive demo uses simplified grid zones and uniform installation costs.
+  The full experimental pipeline supports risk-aware objectives and additional constraints.
+  The default backend is an ideal statevector simulator; this demo does not claim execution on physical quantum hardware.
+  Local server: <code>python src/ui/server.py</code></p>
 </div>
 <div id="main">
   <div id="layerBar">
     <div class="lrow">
-      <b>레이어</b>
+      <b>Layers</b>
       <span id="layerBoxes"></span>
-      <button class="sm" id="lyAll">전체 켜기</button>
-      <button class="sm" id="lyOnlyEvac">대피만 보기</button>
-      <button class="sm" id="lyOnlySensor">센서만 보기</button>
+      <button class="sm" id="lyAll">Show All</button>
+      <button class="sm" id="lyOnlyEvac">Evacuation Only</button>
+      <button class="sm" id="lyOnlySensor">Sensors Only</button>
     </div>
     <div class="lrow" id="routeRow">
-      <b>대피 경로 표시</b>
-      <select id="routeFilter" style="width:auto;min-width:190px;margin:0"><option value="">전체</option></select>
-      <label class="ck"><input type="checkbox" id="lyDim" checked>선택 외 경로 흐리게</label>
+      <b>Evacuation Routes</b>
+      <select id="routeFilter" style="width:auto;min-width:190px;margin:0"><option value="">All Routes</option></select>
+      <label class="ck"><input type="checkbox" id="lyDim" checked>Dim Unselected Routes</label>
       <span class="note" id="routeCount"></span>
     </div>
   </div>
@@ -201,6 +214,7 @@
 <script>
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 let img=null,sensors=[];// {xm,ym,r|null}  r=null이면 자동
+let qaoaHoverSensors = [];
 let hazards=[];// {id,kind,x_m,y_m,radius_m,intensity,origin} — 다중 재해 (2026-07-27 PM 2순위)
 let hzSel=0;  // 목록에서 선택된(이동 대상) 재해 index
 let exitsIn=[];   // 사용자 입력 출구 [{id,x_m,y_m,name}] — 비면 서버가 격자 모서리로 가정
@@ -210,7 +224,7 @@ let zoneInfo=null;// 최적화 결과 구역별 커버율 [{id,x0,y0,x1,y1,cov,r
 let evac=null;    // 최적화 결과 대피 경로 {polyline,exits,...}
 let wx=null;      // 기상 해설 {있음,wd_deg,ws_ms,이동_방위_deg,...}
 const WEAK_TAU=0.30;
-const KIND_KO={fire:'화재',gas_leak:'가스 누출',smoke:'연기'};
+const KIND_KO={fire:'Fire',gas_leak:'Gas Leak',smoke:'Smoke'};
 const KIND_RGB={fire:'255,110,40',gas_leak:'120,220,180',smoke:'150,150,160'};
 // index.html을 file://로 직접 열어도 로컬 서버(8788)에 붙도록 API 절대주소 사용
 const API=location.protocol==='file:'?'http://127.0.0.1:8788':'';
@@ -222,19 +236,19 @@ const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','
 // --- 레이어 토글 (가독성 개선, 2026-07-27 PM 요청) -------------------------
 // 체크박스가 범례 역할까지 겸한다. spec: [key, 표시명, 색, 기본값]
 const LAYER_SPEC=[
-  ['plan','도면','#dcdcdc',true],
-  ['grid','구역 격자','#9a9a9a',true],
-  ['risk','위험 히트맵','#d86a4a',false],
-  ['weak','취약 구역','#c03a30',true],
-  ['downwind','풍하측 표시','#e0d060',true],
-  ['cov','센서 커버리지 원','#2d78dc',false],
-  ['sensors','센서','#1f8f4a',true],
-  ['hazards','재해 발생원','#ff6e28',true],
-  ['wind','풍향 화살표','#e0d060',true],
-  ['routes','대피 경로','#4fd28a',true],
-  ['exits','출구','#2f6fd0',true],
-  ['workers','작업자 위치','#4fd28a',true],
-  ['labels','라벨·글자','#c8c8c8',true],
+  ['plan','Floor Plan','#dcdcdc',true],
+  ['grid','Zone Grid','#9a9a9a',true],
+  ['risk','Risk Heatmap','#d86a4a',false],
+  ['weak','High-Risk Zones','#c03a30',true],
+  ['downwind','Downwind Zones','#e0d060',true],
+  ['cov','Sensor Coverage','#2d78dc',false],
+  ['sensors','Sensors','#1f8f4a',true],
+  ['hazards','Hazard Sources','#ff6e28',true],
+  ['wind','Wind Direction','#e0d060',true],
+  ['routes','Evacuation Routes','#4fd28a',true],
+  ['exits','Exits','#2f6fd0',true],
+  ['workers','Worker Locations','#4fd28a',true],
+  ['labels','Labels','#c8c8c8',true],
 ];
 const LY={};LAYER_SPEC.forEach(([k,,,d])=>LY[k]=d);
 function buildLayerBar(){
@@ -269,17 +283,17 @@ function refreshRouteFilter(){
   const sel=document.getElementById('routeFilter'),cnt=document.getElementById('routeCount');
   const prev=sel.value;
   const rs=(evac&&evac.active&&evac.routes)?evac.routes:[];
-  sel.innerHTML='<option value="">전체'+(rs.length?` (${rs.length}개)`:'')+'</option>'
+  sel.innerHTML='<option value="">All Routes'+(rs.length?` (${rs.length})`:'')+'</option>'
     +rs.map(r=>`<option value="${esc(r.origin)}">${esc(r.origin)} → ${esc(r.exit)} · ${r.지표.거리_m} m</option>`).join('');
   if(rs.some(r=>r.origin===prev))sel.value=prev;
-  cnt.textContent=rs.length>6?'경로가 많으면 하나만 골라 보세요':'';
+  cnt.textContent=rs.length>6?'Select a route to inspect it individually.':'';
   document.getElementById('routeRow').style.display=rs.length?'':'none';
 }
 
 // --- 파일 형식 식별 (UI 테스트 코퍼스 기준: 이미지=미리보기, CAD/BIM=안내 후 복귀, 불명=경고 후 복귀) ---
 const IMG_EXT=['png','jpg','jpeg','bmp','gif','webp','svg'];
 const MAX_IMG_MB=20; // 대용량 이미지 안전 한도 (디코딩 폭탄·브라우저 멈춤 방지)
-const KNOWN_FMT={ifc:'BIM(IFC)',ifcxml:'BIM(ifcXML)',ifczip:'BIM(ifcZIP)',bcfzip:'BIM 이슈(BCF)',ids:'BIM 검증(IDS)',dxf:'CAD(DXF)',dwg:'CAD(DWG)',dgn:'CAD(DGN)',stp:'CAD(STEP)',step:'CAD(STEP)',stl:'3D(STL)',amf:'3D(AMF)',ply:'3D(PLY)',obj:'3D(OBJ)',skp:'3D(SketchUp)',fds:'화재 시뮬레이션(FDS)',idf:'건물 모델(EnergyPlus IDF)',epjson:'건물 모델(epJSON)',xml:'XML(gbXML 등)',gbxml:'건물 모델(gbXML)',ttl:'시맨틱(Brick TTL)',rdf:'시맨틱(RDF)',pdf:'문서(PDF)',zip:'압축(ZIP)',csv:'표(CSV)',json:'JSON',txt:'텍스트',md:'텍스트(Markdown)',yaml:'텍스트(YAML)',yml:'텍스트(YAML)',tif:'이미지(TIFF)',tiff:'이미지(TIFF)'};
+const KNOWN_FMT={ifc:'BIM(IFC)',ifcxml:'BIM(ifcXML)',ifczip:'BIM(ifcZIP)',bcfzip:'BIM Issue (BCF)',ids:'BIM Validation (IDS)',dxf:'CAD(DXF)',dwg:'CAD(DWG)',dgn:'CAD(DGN)',stp:'CAD(STEP)',step:'CAD(STEP)',stl:'3D(STL)',amf:'3D(AMF)',ply:'3D(PLY)',obj:'3D(OBJ)',skp:'3D(SketchUp)',fds:'Fire Simulation (FDS)',idf:'Building Model (EnergyPlus IDF)',epjson:'Building Model (epJSON)',xml:'XML(gbXML 등)',gbxml:'Building Model (gbXML)',ttl:'Semantic Model (Brick TTL)',rdf:'Semantic Model (RDF)',pdf:'Document (PDF)',zip:'Archive (ZIP)',csv:'Table (CSV)',json:'JSON',txt:'Text',md:'Text (Markdown)',yaml:'Text (YAML)',yml:'Text (YAML)',tif:'Image (TIFF)',tiff:'Image (TIFF)'};
 const fileMsg=(t,c)=>{const m=document.getElementById('fileMsg');m.textContent=t;m.style.color=c||'#999';};
 function sniffImage(bytes){ // 확장자 없는 파일용 매직바이트 판별
   const b=bytes;if(b.length<12)return null;
@@ -292,13 +306,13 @@ function sniffImage(bytes){ // 확장자 없는 파일용 매직바이트 판별
 }
 function loadImage(f){
   if(f.size>MAX_IMG_MB*1048576){
-    fileMsg(`⚠ ${f.name}: 이미지가 ${MAX_IMG_MB}MB를 초과합니다(${(f.size/1048576).toFixed(1)}MB). 브라우저 멈춤 방지를 위해 축소·재저장 후 업로드해 주세요.`,'#f0b060');return;
+    fileMsg(`⚠ ${f.name}: Image exceeds the ${MAX_IMG_MB} MB limit (${(f.size/1048576).toFixed(1)} MB). Please resize the image before uploading.`,'#f0b060');return;
   }
   const u=URL.createObjectURL(f);const im=new Image();
   im.onload=()=>{img=im;cv.width=900;cv.height=Math.round(900*im.height/im.width);
     resetResult();
-    fileMsg(`✓ ${f.name} (${(f.size/1024).toFixed(0)} KB) 로드 완료`,'#7fc97f');draw();};
-  im.onerror=()=>{fileMsg(`✗ ${f.name} 이미지를 해석할 수 없습니다(손상 또는 비지원 인코딩). 다른 파일을 시도해 주세요.`,'#ff7b7b');};
+    fileMsg(`✓ ${f.name} (${(f.size/1024).toFixed(0)} KB) loaded successfully`,'#7fc97f');draw();};
+  im.onerror=()=>{fileMsg(`✗ ${f.name} could not be decoded. The file may be corrupted or use an unsupported encoding.`,'#ff7b7b');};
   im.src=u;
 }
 document.getElementById('imgIn').onchange=async e=>{
@@ -311,13 +325,13 @@ document.getElementById('imgIn').onchange=async e=>{
     const head=new Uint8Array(await f.slice(0,16).arrayBuffer());
     const kind=sniffImage(head);
     if(kind){loadImage(f);}
-    else fileMsg(`⚠ ${f.name}: 확장자가 없어 형식을 확정할 수 없습니다(이미지 아님·텍스트 추정). PNG/JPG 도면 이미지를 업로드해 주세요.`,'#f0b060');
+    else fileMsg(`⚠ ${f.name}: File type could not be determined. Please upload a PNG or JPG floor plan.`,'#f0b060');
     e.target.value='';return;
   }
   const kind=KNOWN_FMT[ext];
   fileMsg(kind
-    ?`⚠ ${kind} 형식(.${ext})은 현재 시안에서 직접 미리보기를 지원하지 않습니다. 도면을 PNG/JPG 이미지로 변환한 뒤 업로드해 주세요. (다음 단계에서 IFC/DXF 파서 연동 검토)`
-    :`⚠ 인식할 수 없는 형식(.${ext})입니다. PNG/JPG 등 이미지 파일을 업로드해 주세요.`,'#f0b060');
+    ?`⚠ ${kind} format (.${ext}) is not currently supported for direct preview. Convert the floor plan to PNG or JPG before uploading.`
+    :`⚠ Unsupported file format (.${ext}). Please upload a PNG or JPG floor plan.`,'#f0b060');
   e.target.value='';
 };
 
@@ -335,10 +349,10 @@ cv.onclick=e=>{
   if(mode==='exit'){addExit(+xm.toFixed(2),+ym.toFixed(2));return;}
   if(mode==='origin'){addOrigin(+xm.toFixed(2),+ym.toFixed(2));return;}
   if(mode==='move'){
-    if(!hazards.length){hzMsg('이동할 재해가 없습니다 — 먼저 [재해 발생원 추가]로 추가하세요.','#f0b060');return;}
+    if(!hazards.length){hzMsg('No hazard source is available to move. Add a hazard first.','#f0b060');return;}
     const h=hazards[hzSel]||hazards[0];
     h.x_m=+xm.toFixed(2);h.y_m=+ym.toFixed(2);
-    hzMsg(`${h.id} 위치를 (${h.x_m}, ${h.y_m}) m 로 이동했습니다.`,'#8ab4f8');
+    hzMsg(`${h.id} moved to (${h.x_m}, ${h.y_m}) m.`,'#8ab4f8');
     renderHz();draw();return;
   }
   const manual=document.getElementById('rMode').value==='manual';
@@ -357,24 +371,24 @@ function addHazard(x,y){
     intensity:parseFloat(document.getElementById('hzI').value||1),origin:'manual'};
   hazards.push(h);hzSel=hazards.length-1;
   document.getElementById('hzOn').checked=true;
-  hzMsg(`${h.id} ${KIND_KO[h.kind]} 추가: (${x}, ${y}) m · 반경 ${h.radius_m} m — 예시 설정값(실측 센서 아님)`,'#f0a060');
+  hzMsg(`${h.id} ${KIND_KO[h.kind]} added at (${x}, ${y}) m · radius ${h.radius_m} m — simulated input, not a live sensor measurement`,'#f0a060');
   renderHz();draw();
 }
 document.getElementById('hzAdd').onclick=()=>addHazard(
   parseFloat(document.getElementById('hzX').value||0),
   parseFloat(document.getElementById('hzY').value||0));
-document.getElementById('hzClear').onclick=()=>{hazards=[];hzSel=0;hzMsg('재해 전체 삭제 — 균일 위험도(0.5) 기준선으로 돌아갑니다.');renderHz();draw();};
+document.getElementById('hzClear').onclick=()=>{hazards=[];hzSel=0;hzMsg('All hazards cleared — returning to the uniform risk baseline (0.5).');renderHz();draw();};
 document.getElementById('hzOn').onchange=()=>{renderHz();draw();};
 function renderHz(){
   const L=document.getElementById('hzList');
-  if(!hazards.length){L.innerHTML='<div class="note">추가된 재해가 없습니다 — 균일 위험도(0.5) 기준선으로 계산됩니다.</div>';return;}
+  if(!hazards.length){L.innerHTML='<div class="note">No hazards added — calculations use the uniform risk baseline (0.5).</div>';return;}
   L.innerHTML=hazards.map((h,i)=>
     `<div class="row${i===hzSel?' act':''}" onclick="pickHz(${i})">`+
-    `<span><b>${h.id}</b> ${KIND_KO[h.kind]} (${h.x_m}, ${h.y_m})m · r=${h.radius_m}m · 세기 ${h.intensity}</span>`+
+    `<span><b>${h.id}</b> ${KIND_KO[h.kind]} (${h.x_m}, ${h.y_m})m · r=${h.radius_m}m · intensity ${h.intensity}</span>`+
     `<span class="del" onclick="event.stopPropagation();delHz(${i})">✕</span></div>`).join('');
 }
 function pickHz(i){hzSel=i;document.getElementById('clickMode').value='move';
-  hzMsg(`${hazards[i].id} 선택 — 도면을 클릭하면 이 재해의 위치가 이동합니다.`,'#8ab4f8');renderHz();draw();}
+  hzMsg(`${hazards[i].id} selected — click the floor plan to move this hazard.`,'#8ab4f8');renderHz();draw();}
 function delHz(i){hazards.splice(i,1);if(hzSel>=hazards.length)hzSel=Math.max(0,hazards.length-1);renderHz();draw();}
 let firePresets={};
 document.getElementById('firePreset').onchange=e=>{
@@ -383,15 +397,15 @@ document.getElementById('firePreset').onchange=e=>{
   document.getElementById('hzKind').value=s.kind||'fire';
   document.getElementById('hzR').value=s.radius_m||6;
   document.getElementById('hzI').value=s.intensity!=null?s.intensity:1;
-  hzMsg(`프리셋 기본값 적용: ${p.설명||e.target.value} — 도면을 클릭해 위치를 지정하세요`
-       +(p.sources.length>1?` (이 프리셋은 발생원 ${p.sources.length}건 — 유형을 바꿔가며 여러 번 클릭해 재현하세요)`:'')+'.','#8ab4f8');
+  hzMsg(`Preset defaults applied: ${p.설명||e.target.value} — click the floor plan to place the hazard`
+       +(p.sources.length>1?` (This preset contains ${p.sources.length} hazard sources. Change the hazard type and place each source on the floor plan.)`:'')+'.','#8ab4f8');
 };
 (async()=>{ // 서버에서 프리셋 목록 로드 (서버 미실행이면 직접 입력만 사용)
   try{
     const d=await(await fetch(API+'/fire_presets')).json();
     firePresets=d.presets||{};
     const sel=document.getElementById('firePreset');
-    Object.keys(firePresets).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k+(k===d.default?' ★ 대표(PM 확정)':'');sel.appendChild(o);});
+    Object.keys(firePresets).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k+(k===d.default?' ★ Default Scenario':'');sel.appendChild(o);});
     // UI 기본값 = PM 확정 대표 시나리오의 유형·반경·세기 (위치는 도면 클릭으로 지정)
     const u=d.ui_기본값||{};
     if(u.radius_m)document.getElementById('hzR').value=u.radius_m;
@@ -399,8 +413,8 @@ document.getElementById('firePreset').onchange=e=>{
     if(u.intensity!=null)document.getElementById('hzI').value=u.intensity;
     if(d.default){
       sel.value=d.default;
-      hzMsg(`대표 시나리오 기본 적용: ${d.default} (${(firePresets[d.default]||{}).설명||''}) — `
-           +`유형·반경·세기가 채워져 있습니다. 도면에서 [재해 발생원 추가] 모드로 위치를 클릭하세요.`,'#8ab4f8');
+      hzMsg(`Default representative scenario applied: ${d.default} (${(firePresets[d.default]||{}).설명||''}) — `
+           +`Type, radius, and intensity are preconfigured. Use Add Hazard Source mode and click the floor plan to place it.`,'#8ab4f8');
     }
   }catch(e){/* 서버 미실행 */}
 })();
@@ -414,7 +428,7 @@ function addExit(x,y){
   exitsIn.push({id:id,x_m:x,y_m:y,name:nm||null});
   document.getElementById('exName').value='';
   document.getElementById('exX').value=x;document.getElementById('exY').value=y;
-  evMsg(`출구 ${id} 추가: (${x}, ${y}) m — 이제 이 출구 기준으로 경로를 계산합니다.`,'#8ab4f8');
+  evMsg(`Exit ${id} added at (${x}, ${y}) m — evacuation routes will now be evaluated using this exit.`,'#8ab4f8');
   renderEv();draw();
 }
 function addOrigin(x,y){
@@ -424,42 +438,42 @@ function addOrigin(x,y){
   originsIn.push({id:id,x_m:x,y_m:y,n:n>0?n:null});
   document.getElementById('orName').value='';
   document.getElementById('orX').value=x;document.getElementById('orY').value=y;
-  evMsg(`작업자 위치 ${id} 추가: (${x}, ${y}) m${n>0?` · ${n}명`:' · 인원 미입력'}`,'#8ab4f8');
+  evMsg(`Worker location ${id} added at (${x}, ${y}) m${n>0?` · ${n} people`:' · occupancy not specified'}`,'#8ab4f8');
   renderEv();draw();
 }
 document.getElementById('exAdd').onclick=()=>addExit(
   parseFloat(document.getElementById('exX').value||0),parseFloat(document.getElementById('exY').value||0));
 document.getElementById('orAdd').onclick=()=>addOrigin(
   parseFloat(document.getElementById('orX').value||0),parseFloat(document.getElementById('orY').value||0));
-document.getElementById('exClear').onclick=()=>{exitsIn=[];exSeq=0;evMsg('출구 입력 삭제 — 격자 네 모서리를 출구로 가정합니다(결과에 가정 표기).');renderEv();draw();};
-document.getElementById('orClear').onclick=()=>{originsIn=[];orSeq=0;evMsg('작업자 위치 삭제 — 모든 구역을 출발점으로 자동 계산합니다.');renderEv();draw();};
+document.getElementById('exClear').onclick=()=>{exitsIn=[];exSeq=0;evMsg('Exit inputs cleared — the four grid corners will be assumed as evacuation exits.');renderEv();draw();};
+document.getElementById('orClear').onclick=()=>{originsIn=[];orSeq=0;evMsg('Worker locations cleared — evacuation routes will be evaluated from all zones.');renderEv();draw();};
 function delExit(i){exitsIn.splice(i,1);renderEv();draw();}
 function delOrigin(i){originsIn.splice(i,1);renderEv();draw();}
 function renderEv(){
   const E=document.getElementById('exList'),O=document.getElementById('orList');
   E.innerHTML=exitsIn.length
     ? exitsIn.map((e,i)=>`<div class="row"><span><b>${esc(e.id)}</b> (${e.x_m}, ${e.y_m}) m</span><span class="del" onclick="delExit(${i})">✕</span></div>`).join('')
-    : '<div class="note">출구 미입력 — 격자 네 모서리로 <b>가정</b>합니다.</div>';
+    : '<div class="note">No exits specified — the four grid corners are <b>assumed</b> as evacuation exits.</div>';
   O.innerHTML=originsIn.length
-    ? originsIn.map((o,i)=>`<div class="row"><span><b>${esc(o.id)}</b> (${o.x_m}, ${o.y_m}) m${o.n?` · ${o.n}명`:''}</span><span class="del" onclick="delOrigin(${i})">✕</span></div>`).join('')
-    : '<div class="note">작업자 위치 미입력 — <b>모든 구역</b>에서 출발하는 경로를 계산합니다.</div>';
+    ? originsIn.map((o,i)=>`<div class="row"><span><b>${esc(o.id)}</b> (${o.x_m}, ${o.y_m}) m${o.n?` · ${o.n} people`:''}</span><span class="del" onclick="delOrigin(${i})">✕</span></div>`).join('')
+    : '<div class="note">No worker locations specified — routes are evaluated from <b>all zones</b>.</div>';
 }
 
 // --- 5. 기상 해설 (PM 1순위: 풍속·풍향 설명) ---
 function wxRender(){
   const p=document.getElementById('wxPanel');
   const on=document.getElementById('wxOn').checked;
-  if(!wx){p.innerHTML='<span class="note">기상 관측값을 불러올 수 없습니다(서버 미실행 또는 관측 없음) — 등방 확산으로 계산합니다.</span>';return;}
-  if(!wx.있음){p.innerHTML=`<b>기상 미반영</b><ul>${(wx.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;return;}
-  p.innerHTML=`<b>풍향 ${wx.wd_deg}° (${esc(wx.풍향_방위)}) · 풍속 ${wx.ws_ms} m/s (${esc(wx.등급)})</b>`
-    +`<br>연기·가스 이동 방향: <b>${esc(wx.이동_방위)}</b> (${wx.이동_방위_deg?.toFixed?.(1)}°)`
-    +(on?'':'<br><span style="color:#f0b060">현재 [기상 보정 적용]이 꺼져 있어 계산에는 반영되지 않습니다.</span>')
-    +`<div class="lim">${esc(wx.출처||'')}${wx.stn?` · 관측소 ${wx.stn} · ${wx.n}행 · ${(wx.기간||[]).join('~')}`:''}</div>`;
+  if(!wx){p.innerHTML='<span class="note">Weather observations are unavailable — risk propagation will be modeled using isotropic dispersion.</span>';return;}
+  if(!wx.있음){p.innerHTML=`<b>Weather Adjustment Disabled</b><ul>${(wx.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`;return;}
+  p.innerHTML=`<b>Wind Direction: ${wx.wd_deg}° (${esc(wx.풍향_방위)}) · Wind Speed: ${wx.ws_ms} m/s (${esc(wx.등급)})</b>`
+    +`<br>Smoke / Gas Dispersion Direction: <b>${esc(wx.이동_방위)}</b> (${wx.이동_방위_deg?.toFixed?.(1)}°)`
+    +(on?'':'<br><span style="color:#f0b060">Weather adjustment is currently disabled and is not included in the optimization.</span>')
+    +`<div class="lim">${esc(wx.출처||'')}${wx.stn?` · Station ${wx.stn} · ${wx.n} observations · ${(wx.기간||[]).join(' – ')}`:''}</div>`;
   const w=document.getElementById('wxWhy');
   w.style.display='';
-  w.innerHTML=`<b>🌬 풍향·풍속이 결과에 어떻게 반영되는가</b><ul>`
+  w.innerHTML=`<b>🌬 How Weather Affects Risk Estimation</b><ul>`
     +(wx.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')
-    +`</ul><div class="lim">한계: ${esc(wx.한계||'')}</div>`;
+    +`</ul><div class="lim">Limitation: ${esc(wx.한계||'')}</div>`;
 }
 document.getElementById('wxOn').onchange=()=>{wxRender();draw();};
 (async()=>{try{wx=await(await fetch(API+'/weather')).json();}catch(e){wx=null;}wxRender();})();
@@ -471,7 +485,7 @@ document.getElementById('clearBtn').onclick=()=>{sensors=[];resetResult();draw()
     const h=hazards[hzSel];if(h){h.kind=document.getElementById('hzKind').value;
       h.radius_m=parseFloat(document.getElementById('hzR').value||6);
       h.intensity=parseFloat(document.getElementById('hzI').value||1);
-      hzMsg(`${h.id} 속성을 수정했습니다 (유형 ${KIND_KO[h.kind]}, 반경 ${h.radius_m} m, 세기 ${h.intensity}).`,'#8ab4f8');
+      hzMsg(`${h.id} updated (Type: ${KIND_KO[h.kind]}, Radius: ${h.radius_m} m, Intensity: ${h.intensity}).`,'#8ab4f8');
       renderHz();}
   }
   draw();});
@@ -481,9 +495,9 @@ function draw(){
   if(img&&LY.plan)ctx.drawImage(img,0,0,cv.width,cv.height);
   else{ctx.fillStyle=img?'#fbfbfb':'#f4f4f4';ctx.fillRect(0,0,cv.width,cv.height);
     if(!img){ctx.fillStyle='#999';ctx.font='16px sans-serif';ctx.textAlign='center';
-      ctx.fillText('도면 이미지를 업로드한 뒤 클릭하여 센서를 배치하세요',cv.width/2,cv.height/2);}}
+      ctx.fillText('Upload a floor plan, then click to place sensor candidates.',cv.width/2,cv.height/2);}}
   const k=pxPerM();
-  // ── 구역 레이어: 위험 히트맵 → 취약 구역 → 격자선 → 풍하측 표식 ──────────
+  // ── 구역 레이어: 위험 히트맵 → 취약 구역 → 격자선 → Downwind 표식 ──────────
   if(zoneInfo&&(LY.risk||LY.weak||LY.grid||LY.downwind)){
     const rmax=Math.max(...zoneInfo.map(z=>z.risk!=null?z.risk:0),0.5)||1;
     ctx.save();
@@ -508,7 +522,7 @@ function draw(){
       }
       if(LY.downwind&&z.downwind&&LY.labels){
         ctx.fillStyle='rgba(190,170,40,.9)';ctx.font='10px sans-serif';ctx.textAlign='right';
-        ctx.fillText('풍하측',x+w-4,y+hh-5);
+        ctx.fillText('Downwind',x+w-4,y+hh-5);
       }
     });
     ctx.restore();
@@ -574,7 +588,7 @@ function draw(){
         ctx.beginPath();ctx.arc(s.x_m*k,s.y_m*k,on?(many?3:6):2.5,0,7);
         ctx.fillStyle=on?`rgb(${col})`:`rgba(${col},.35)`;ctx.fill();
         if(on&&!many&&LY.labels){ctx.fillStyle='#14603a';ctx.font='bold 12px sans-serif';ctx.textAlign='left';
-          ctx.fillText(`${r.origin}${r.n?`(${r.n}명)`:''} → ${r.exit}`,s.x_m*k+9,s.y_m*k+16);}
+          ctx.fillText(`${r.origin}${r.n?`(${r.n} people)`:''} → ${r.exit}`,s.x_m*k+9,s.y_m*k+16);}
       }
       ctx.restore();
     });
@@ -592,7 +606,7 @@ function draw(){
       ctx.beginPath();ctx.rect(x-7,y-7,14,14);ctx.fill();
       if(LY.labels){
         ctx.fillStyle=e.usable?'#1d4f9b':'#8c1f18';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
-        ctx.fillText(`${e.id}${!e.usable?' 폐쇄':(usedExits.includes(e.id)?' ✓':'')}`,x,y-11);
+        ctx.fillText(`${e.id}${!e.usable?' Unavailable':(usedExits.includes(e.id)?' ✓':'')}`,x,y-11);
       }
       ctx.restore();
     });
@@ -604,7 +618,7 @@ function draw(){
       ctx.save();ctx.fillStyle='rgba(79,210,138,.9)';
       ctx.beginPath();ctx.arc(x,y,6,0,7);ctx.fill();
       if(LY.labels){ctx.fillStyle='#14603a';ctx.font='bold 11px sans-serif';ctx.textAlign='left';
-        ctx.fillText(`${o.id}${o.n?`(${o.n}명)`:''}`,x+9,y+4);}
+        ctx.fillText(`${o.id}${o.n?`(${o.n} people)`:''}`,x+9,y+4);}
       ctx.restore();
     });
   }
@@ -613,6 +627,7 @@ function draw(){
     const x=s.xm*k,y=s.ym*k,rp=rOf(s)*k;
     const id='S'+(i+1);
     const sel=selectedIds?selectedIds.includes(id):null; // null=최적화 전
+    const hover=qaoaHoverSensors.includes(id);
     const fill=sel===null?'rgba(45,120,220,.18)':sel?'rgba(40,170,80,.25)':'rgba(120,120,120,.10)';
     const stroke=sel===null?'rgba(45,120,220,.7)':sel?'rgba(40,170,80,.9)':'rgba(120,120,120,.4)';
     const dot=sel===null?'#d43f3f':sel?'#1f8f4a':'#8a8a8a';
@@ -621,13 +636,24 @@ function draw(){
       ctx.strokeStyle=stroke;ctx.stroke();
     }
     if(LY.sensors){
-      ctx.beginPath();ctx.arc(x,y,sel?5:4,0,7);ctx.fillStyle=dot;ctx.fill();
+   ctx.beginPath();
+ctx.arc(x,y,hover?9:(sel?5:4),0,7);
+ctx.fillStyle=hover?'#ffd54f':dot;
+ctx.fill();
+
+if(hover){
+  ctx.beginPath();
+  ctx.arc(x,y,13,0,7);
+  ctx.strokeStyle='#ffd54f';
+  ctx.lineWidth=3;
+  ctx.stroke();
+}
       if(LY.labels){ctx.fillStyle='#222';ctx.font=(sel?'bold ':'')+'11px sans-serif';ctx.textAlign='left';
         ctx.fillText(id+(sel?' ✓':''),x+6,y-6);}
     }
   });
   const L=document.getElementById('list');
-  L.innerHTML=sensors.map((s,i)=>`<div class="row"><b>S${i+1}</b> (${s.xm}, ${s.ym}) m · r=${rOf(s)}m${s.r==null?'(자동)':''} <span class="del" onclick="delS(${i})">✕</span></div>`).join('');
+  L.innerHTML=sensors.map((s,i)=>`<div class="row"><b>S${i+1}</b> (${s.xm}, ${s.ym}) m · r=${rOf(s)}m${s.r==null?' (Auto)':''} <span class="del" onclick="delS(${i})">✕</span></div>`).join('');
 }
 function delS(i){sensors.splice(i,1);draw();}
 document.getElementById('exportBtn').onclick=()=>{
@@ -646,7 +672,7 @@ document.getElementById('exportBtn').onclick=()=>{
 // --- 7. 최적화 실행 (server.py 필요) ---
 document.getElementById('optBtn').onclick=async()=>{
   const msg=document.getElementById('optMsg'),res=document.getElementById('optResult');
-  if(sensors.length<2){msg.textContent='⚠ 센서를 2개 이상 배치하세요.';msg.style.color='#f0b060';return;}
+  if(sensors.length<2){msg.textContent='⚠ Place at least two sensor candidates before running optimization.';msg.style.color='#f0b060';return;}
   const siteW=parseFloat(document.getElementById('siteW').value||60);
   const body={site_width_m:siteW, site_height_m:+(siteW*cv.height/cv.width).toFixed(2),
     K:parseInt(document.getElementById('optK').value||6),
@@ -657,7 +683,7 @@ document.getElementById('optBtn').onclick=async()=>{
     use_weather:document.getElementById('wxOn').checked,
     exits:exitsIn, origins:originsIn,
     sensors:sensors.map((s,i)=>({id:'S'+(i+1),x_m:s.xm,y_m:s.ym,radius_m:rOf(s)}))};
-  msg.textContent=body.backend==='ionq_sim'?'IonQ 클라우드 시뮬레이터 실행 중… (수 초~수 분)':'최적화 실행 중…';
+  msg.textContent=body.backend==='ionq_sim'?'Running IonQ Cloud Simulator...':'Running optimization...';
   msg.style.color='#8ab4f8';res.textContent='';
   try{
     const r=await fetch(API+'/optimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -667,21 +693,108 @@ document.getElementById('optBtn').onclick=async()=>{
     evac=d.evacuation||null;if(d.weather)wx=d.weather;
     refreshRouteFilter();wxRender();draw();
     const q=d.methods.qaoa,ex=d.methods.exact;
-    msg.textContent=`✓ 완료 (${d.time_s}s)`+(d.warning?` — ${d.warning}`:'');msg.style.color=d.warning?'#f0b060':'#7fc97f';
-    res.innerHTML=`<b>선택된 센서 (${d.selected_ids.length}/${d.n_candidates})</b>: ${d.selected_ids.join(', ')}<br>`+
-      `QAOA[${q.backend}]: 에너지 ${q.energy}, 가중 커버리지 ${q.weighted_coverage}`+
-      (q.optimal_found!==undefined?`, 최적해 발견 ${q.optimal_found?'O':'X'}`:'')+
+
+        // --- QAOA state distribution visualization ---
+    const qaoaPanel = document.getElementById('qaoaPanel');
+    const qaoaStates = document.getElementById('qaoaStates');
+    const topStates = Array.isArray(q.top_states) ? q.top_states : [];
+
+    if (topStates.length > 0) {
+      qaoaPanel.style.display = '';
+
+      const maxProbability = Math.max(
+        ...topStates.map(s => Number(s.probability || 0)),
+        0.000001
+      );
+
+      qaoaStates.innerHTML = topStates.map(state => {
+        const probability = Number(state.probability || 0);
+        const probabilityPercent = probability * 100;
+        const barWidth = Math.max(
+          4,
+          (probability / maxProbability) * 100
+        );
+
+        const sensors = (state.selected_sensors || []).join(', ');
+
+        return `
+          <div class="qaoa-state-card" style="
+            margin-bottom:12px;
+            padding:10px;
+            border:1px solid #3a4a60;
+            border-radius:8px;
+            background:#111b2a;
+          ">
+            <div style="
+              display:flex;
+              justify-content:space-between;
+              gap:10px;
+              margin-bottom:6px;
+            ">
+              <span>
+                <b>#${state.rank}</b>
+                <code style="margin-left:6px;">${esc(state.bitstring)}</code>
+              </span>
+
+              <b style="color:#8ab4f8;">
+                ${probabilityPercent.toFixed(4)}%
+              </b>
+            </div>
+
+            <div style="
+              height:8px;
+              background:#273449;
+              border-radius:6px;
+              overflow:hidden;
+              margin-bottom:7px;
+            ">
+              <div style="
+                height:100%;
+                width:${barWidth}%;
+                background:#8ab4f8;
+              "></div>
+            </div>
+
+            <div class="note">
+              Selected sensors: ${esc(sensors)}
+              <br>
+              Energy: ${Number(state.energy).toFixed(4)}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      qaoaStates.querySelectorAll('.qaoa-state-card').forEach((card, index) => {
+  card.addEventListener('mouseenter', () => {
+    qaoaHoverSensors = topStates[index].selected_sensors || [];
+    draw();
+  });
+
+  card.addEventListener('mouseleave', () => {
+    qaoaHoverSensors = [];
+    draw();
+  });
+});
+
+    } else {
+      qaoaPanel.style.display = 'none';
+      qaoaStates.innerHTML = '';
+    }
+    msg.textContent=`✓ Optimization complete (${d.time_s}s)`+(d.warning?` — ${d.warning}`:'');msg.style.color=d.warning?'#f0b060':'#7fc97f';
+    res.innerHTML=`<b>Selected Sensors (${d.selected_ids.length}/${d.n_candidates})</b>: ${d.selected_ids.join(', ')}<br>`+
+      `QAOA [${q.backend}]: Energy ${q.energy}, Weighted Coverage ${q.weighted_coverage}`+
+      (q.optimal_found!==undefined?`, Optimal Solution Found: ${q.optimal_found?'Yes':'No'}`:'')+
       (q.job_id?`<br>IonQ job: ${q.job_id}`:'')+
-      `<br>Exact 대조: 에너지 ${ex.energy}, 커버리지 ${ex.weighted_coverage}`+
+      `<br>Exact Baseline: Energy ${ex.energy}, Coverage ${ex.weighted_coverage}`+
       `<br><span style="color:#999">${esc(d.notes)}</span>`;
     // --- 재해 해설 패널 (PM 1순위: 재해 설명) ---
     const hzw=document.getElementById('hzWhy');
     if(d.fire&&d.fire.해설){
       const H=d.fire.해설;hzw.style.display='';
-      hzw.innerHTML=`<b>🔥 적용된 재해와 위험도 계산</b><ul>`
+      hzw.innerHTML=`<b>🔥 Hazard & Risk Analysis</b><ul>`
         +(H.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')
         +(H.목록||[]).map(m=>`<li>${esc(m.설명)}</li>`).join('')
-        +`</ul><div class="lim">한계: ${esc(H.한계||'')}</div>`;
+        +`</ul><div class="lim">Limitation: ${esc(H.한계||'')}</div>`;
     }else hzw.style.display='none';
     // --- 대피 경로 해설 패널 (출구 입력값 기준, 출발 위치별 서술 + 혼잡) ---
     const evw=document.getElementById('evWhy');
@@ -689,45 +802,45 @@ document.getElementById('optBtn').onclick=async()=>{
       const E=d.evacuation,S=E.요약||{},C=E.혼잡||{};
       const many=E.routes.length>6;
       evw.style.display='';
-      let h=`<b>🚸 어떤 위치에서 어떤 방식으로 나가는가</b>`
-        +`<br>출구 ${S.출구_수}곳(${E.출구_입력?'입력값':'<span style="color:#f0b060">미입력 → 격자 모서리 가정</span>'})`
-        +` · 출발 ${S.출발_수}곳(${E.출발_입력?'작업자 지정':'전 구역 자동'})`
-        +(S.폐쇄_출구&&S.폐쇄_출구.length?` · <span style="color:#f08060">폐쇄 ${S.폐쇄_출구.join(', ')}</span>`:'')
-        +`<br>최장 대피: ${esc(S.최장_대피?.origin||'')} → ${esc(S.최장_대피?.exit||'')} `
-        +`${S.최장_대피?.거리_m} m / ${S.최장_대피?.예상_소요_s}초`
-        +(S.법정초과_출발수?` · <span style="color:#f08060">법정 초과 ${S.법정초과_출발수}곳</span>`:' · 전원 법정 이내')
+      let h=`<b>🚸 Evacuation Route Analysis</b>`
+        +`<br>Exits: ${S.출구_수} (${E.출구_입력?'User-defined':'<span style="color:#f0b060">Not provided → grid corners assumed</span>'})`
+        +` · Origins: ${S.출발_수} (${E.출발_입력?'Worker-defined':'All zones'})`
+        +(S.폐쇄_출구&&S.폐쇄_출구.length?` · <span style="color:#f08060">Unavailable exits: ${S.폐쇄_출구.join(', ')}</span>`:'')
+        +`<br>Longest Evacuation: ${esc(S.최장_대피?.origin||'')} → ${esc(S.최장_대피?.exit||'')} `
+        +`${S.최장_대피?.거리_m} m / ${S.최장_대피?.예상_소요_s} s`
+        +(S.법정초과_출발수?` · <span style="color:#f08060">Distance limit exceeded: ${S.법정초과_출발수} origins</span>`:' · All origins within distance limit')
         +`<ul>`+(E.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')+`</ul>`;
       // 출발 위치별 표 (많으면 상위 12곳)
       const rs=E.routes.slice().sort((a,b)=>b.지표.예상_소요_s-a.지표.예상_소요_s);
       const show=rs.slice(0,many?12:rs.length);
-      h+=`<table class="rt"><tr><th>출발</th><th>구역</th><th>출구</th><th>경로</th>`
-        +`<th>거리 m</th><th>소요 s</th><th>위험노출</th><th>법정</th></tr>`
-        +show.map(r=>`<tr class="rsel" onclick="pickRoute('${esc(r.origin)}')" title="클릭하면 이 경로만 도면에 강조">`
-          +`<td>${esc(r.origin)}${r.n?`<br><span class="sm2">${r.n}명</span>`:''}</td>`
+      h+=`<table class="rt"><tr><th>Origin</th><th>Zone</th><th>Exit</th><th>Path</th>`
+        +`<th>Distance (m)</th><th>Est. Time (s)</th><th>Risk Exposure</th><th>Distance Limit</th></tr>`
+        +show.map(r=>`<tr class="rsel" onclick="pickRoute('${esc(r.origin)}')" title="Click to highlight this route on the floor plan">`
+          +`<td>${esc(r.origin)}${r.n?`<br><span class="sm2">${r.n} people</span>`:''}</td>`
           +`<td>${esc(r.origin_zone)}</td><td><b>${esc(r.exit)}</b></td>`
           +`<td class="sm2">${esc(r.path_zone_ids.join('→'))}</td>`
           +`<td>${r.지표.거리_m}</td><td>${r.지표.예상_소요_s}</td><td>${r.지표.위험노출}</td>`
-          +`<td>${r.지표.법정_보행거리_초과?`<span style="color:#f08060">+${r.지표.초과_m} m</span>`:'이내'}</td></tr>`).join('')
+          +`<td>${r.지표.법정_보행거리_초과?`<span style="color:#f08060">+${r.지표.초과_m} m</span>`:'Within limit'}</td></tr>`).join('')
         +`</table>`
-        +(rs.length>show.length?`<div class="lim">소요 시간 상위 ${show.length}곳만 표시 (전체 ${rs.length}곳)</div>`:'');
+        +(rs.length>show.length?`<div class="lim">Showing the ${show.length} origins with the longest estimated travel times (${rs.length} total).</div>`:'');
       // 근거 서술: 경로가 적으면 전부, 많으면 최장 3곳
       (many?rs.slice(0,3):rs).forEach(r=>{
         h+=`<div class="rcard"><b>${esc(r.origin)} → ${esc(r.exit)}</b><ul>`
           +(r.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')+`</ul></div>`;
       });
       // 통로 공유(혼잡)
-      h+=`<div class="rcard"><b>🚦 통로 공유(혼잡) 분석</b><ul>`
+      h+=`<div class="rcard"><b>🚦 Shared Corridor & Congestion Analysis</b><ul>`
         +(C.설명||[]).map(s=>`<li>${esc(s)}</li>`).join('')+`</ul>`;
       if(C.공유_구간&&C.공유_구간.length){
-        h+=`<table class="rt"><tr><th>공유 구간</th><th>사용 출발점</th><th>인원</th><th>통과 s</th><th>지연 s</th></tr>`
+        h+=`<table class="rt"><tr><th>Shared Segment</th><th>Origins</th><th>Occupancy</th><th>Traversal (s)</th><th>Delay (s)</th></tr>`
           +C.공유_구간.map(c=>`<tr><td>${esc(c.구간)}</td><td class="sm2">${esc(c.사용_출발점.join(', '))}</td>`
             +`<td>${c.인원??'—'}</td><td>${c.통과_소요_s??'—'}</td>`
             +`<td>${c.지연_s!=null?(c.지연_s>0?`<span style="color:#f08060">+${c.지연_s}</span>`:'0'):'—'}</td></tr>`).join('')
           +`</table>`
-          +`<div class="lim">용량 가정: 통로폭 ${C.용량_가정?.통로폭_m} m − 경계층 2×${C.용량_가정?.경계층_m} m, `
-          +`단위폭 유동률 ${C.용량_가정?.단위폭_유동률_인_m_s} 인/(m·s) → ${C.용량_가정?.유효_용량_인_s} 인/s · ${esc(C.용량_가정?.출처||'')}</div>`;
+          +`<div class="lim">Capacity assumption: corridor width ${C.용량_가정?.통로폭_m} m − boundary layer 2×${C.용량_가정?.경계층_m} m, `
+          +`specific flow ${C.용량_가정?.단위폭_유동률_인_m_s} persons/(m·s) → effective capacity ${C.용량_가정?.유효_용량_인_s} persons/s · ${esc(C.용량_가정?.출처||'')}</div>`;
       }
-      h+=`</div><div class="lim">한계: ${esc(E.한계||'')}</div>`;
+      h+=`</div><div class="lim">Limitation: ${esc(E.한계||'')}</div>`;
       evw.innerHTML=h;
     }else evw.style.display='none';
     // --- 결과 풀이 (센서별: 선택 이유 + 재해 영향값) ---
@@ -735,18 +848,18 @@ document.getElementById('optBtn').onclick=async()=>{
     if(d.explanation){
       const E=d.explanation;
       const warn=E.weak_zones&&E.weak_zones.length>0;
-      let html=`<div class="sum${warn?' warn':''}">📋 <b>결과 풀이</b><br>${esc(E.summary)}`+
-        (warn?`<br><span style="font-size:10px">※ 도면의 붉은 점선 구역이 취약 구역입니다.</span>`:'')+`</div>`;
-      const card=s=>`<div class="card ${s.selected?'sel':'uns'}"><b>${s.selected?'✓':'✗'} ${s.id} ${s.selected?'선택':'제외'}</b>`+
-        (s.covered_zones&&s.covered_zones.length?` <span style="color:#8fbf9f">(${s.covered_zones.join('·')} 커버)</span>`:'')+
+      let html=`<div class="sum${warn?' warn':''}">📋 <b>Optimization Interpretation</b><br>${esc(E.summary)}`+
+        (warn?`<br><span style="font-size:10px">Red dashed regions indicate high-risk zones.</span>`:'')+`</div>`;
+      const card=s=>`<div class="card ${s.selected?'sel':'uns'}"><b>${s.selected?'✓':'✗'} ${s.id} ${s.selected?'Selected':'Excluded'}</b>`+
+        (s.covered_zones&&s.covered_zones.length?` <span style="color:#8fbf9f">(Covers ${s.covered_zones.join(' · ')})</span>`:'')+
         `<br>${esc(s.reason)}`+
-        (s.hazard&&s.hazard.재해_적용?`<span class="hz">🔥 재해 영향값: ${esc(s.hazard.설명)}</span>`:'')+
+        (s.hazard&&s.hazard.재해_적용?`<span class="hz">🔥 Hazard Impact: ${esc(s.hazard.설명)}</span>`:'')+
         `</div>`;
       html+=E.sensors.filter(s=>s.selected).map(card).join('');
       html+=E.sensors.filter(s=>!s.selected).map(card).join('');
       ep.innerHTML=html;
     }else ep.innerHTML='';
-  }catch(e){msg.innerHTML='⚠ 로컬 서버가 꺼져 있습니다.<br>프로젝트 폴더에서 <code>.venv\\Scripts\\python.exe src\\ui\\server.py</code> 실행 후<br><a href="http://localhost:8788" style="color:#8ab4f8">http://localhost:8788</a> 로 접속하면 데모 도면이 자동 로드됩니다.';msg.style.color='#ff7b7b';}
+  }catch(e){msg.innerHTML='⚠ Local server is unavailable.<br>From the project root, run <code>.venv\\Scripts\\python.exe src\\ui\\server.py</code> then open<br><a href="http://localhost:8788" style="color:#8ab4f8">http://localhost:8788</a> to launch the interactive demo.';msg.style.color='#ff7b7b';}
 };
 
 // --- 시작 시 데모 도면·예시 센서 자동 로드 (서버에서 제공, 실패 시 조용히 넘어감) ---
@@ -759,7 +872,7 @@ async function loadDemo(){
       document.getElementById('siteW').value=meta.site_width_m;
       sensors=(meta.sensors||[]).map(s=>({xm:s.x_m,ym:s.y_m,r:null}));
       resetResult();
-      fileMsg(`✓ 데모 도면 자동 로드: ${meta.source} — 센서 후보 ${sensors.length}개 포함. 바로 [최적화 실행]을 눌러 시연할 수 있습니다. (직접 도면을 올리면 대체됩니다)`,'#7fc97f');
+      fileMsg(`✓ Demo floor plan loaded: ${meta.source} — ${sensors.length} sensor candidates ready. Run the optimization or upload your own floor plan.`,'#7fc97f');
       draw();
     };
     im.src=API+'/demo_plan.png';

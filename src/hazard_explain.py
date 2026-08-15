@@ -25,11 +25,11 @@ import fire_scenario
 from risk_model import (WIND_DIR_MAX_GAIN, WIND_MIN_SPEED_MS, WIND_REF_SPEED_MS,
                         downwind_weight)
 
-KIND_KO = {"fire": "화재", "gas_leak": "가스 누출", "smoke": "연기"}
+KIND_KO = {"fire": "Fire", "gas_leak": "Gas Leak", "smoke": "Smoke"}
 
 # 16방위 한글 이름 (기상청 관례: 0°=북, 시계방향)
-DIR16 = ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동",
-         "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"]
+DIR16 = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+         "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
 # 대피 경로 계산 상수 (출처를 문장에 함께 표기한다)
 FREE_SPEED_MS = 1.19        # D2-FLOW-001 자유류 보행속도
@@ -47,16 +47,16 @@ def compass_name(deg):
 
 
 def wind_grade(ws):
-    """풍속 등급 (위험 보정 규칙의 분기점과 같은 경계를 쓴다)."""
+    """풍속 etc.급 (위험 보정 규칙의 분기점과 같은 경계를 쓴다)."""
     if ws is None:
-        return "관측 없음"
+        return "No observation"
     if ws < WIND_MIN_SPEED_MS:
-        return "무풍"
+        return "Calm"
     if ws < 2.0:
-        return "정온"
+        return "Light wind"
     if ws < 8.0:
-        return "보통"
-    return "강풍"
+        return "Moderate wind"
+    return "Strong wind"
 
 
 def wind_context(weather):
@@ -65,9 +65,9 @@ def wind_context(weather):
     weather: weather_kma.representative_weather() 반환형 또는 None.
     """
     if not weather or weather.get("ws_ms") is None:
-        return {"있음": False, "설명": ["기상 관측값이 없어 풍향 보정을 적용하지 않았습니다 "
-                                     "(등방 확산 가정). src/weather_kma.py 로 수집하면 자동 반영됩니다."],
-                "한계": "기상 미반영 상태의 결과입니다."}
+        return {"있음": False, "설명": ["Weather observations are unavailable, so no directional wind adjustment was applied "
+                                     "(isotropic dispersion assumption)."],
+                "한계": "Results do not include weather adjustment."}
 
     ws = float(weather.get("ws_ms"))
     wd = weather.get("wd_deg")
@@ -79,33 +79,33 @@ def wind_context(weather):
 
     설명 = []
     if wd is not None:
-        설명.append(f"풍향 {wd:.1f}° — {from_name}쪽에서 바람이 불어옵니다. "
-                   f"따라서 연기·가스는 반대쪽인 {to_name}({to_deg:.1f}°) 방향으로 흘러갑니다.")
-    설명.append(f"풍속 {ws:.1f} m/s ({grade})"
-               + (f" · 관측 평균 {weather['평균_풍속_m_s']} m/s, 최대 {weather['최대_풍속_m_s']} m/s"
+        설명.append(f"Wind direction: {wd:.1f}° — wind originates from {from_name}. "
+                   f"Smoke and gas are therefore modeled as dispersing toward {to_name} ({to_deg:.1f}°).")
+    설명.append(f"Wind speed: {ws:.1f} m/s ({grade})"
+               + (f" · observed mean {weather['평균_풍속_m_s']} m/s, maximum {weather['최대_풍속_m_s']} m/s"
                   if weather.get("평균_풍속_m_s") is not None else "")
-               + ". 대표값은 보수적 설계값(90퍼센타일)입니다.")
+               + ". The representative value uses the 90th percentile as a conservative design input.")
     if wd is not None and ws >= WIND_MIN_SPEED_MS:
-        설명.append(f"발생원의 풍하측({to_name} 방향) 구역은 확산 노출이 커서 위험도를 최대 "
-                   f"+{max_gain_pct:.0f}% 가중합니다 (정면 풍하측 기준, 코사인 × 풍속 계수). "
-                   f"풍상측은 보정하지 않습니다(×1.0).")
-        설명.append(f"배치 의미: 같은 거리라면 발생원 {to_name}쪽 구역을 먼저 덮는 센서가 "
-                   f"위험가중 커버리지를 더 많이 올립니다. 대피 경로는 이 방향을 피하도록 계산합니다.")
+        설명.append(f"Downwind zones toward {to_name} receive increased dispersion exposure, with risk weighted by up to "
+                   f"+{max_gain_pct:.0f}% (cosine directional weighting × wind-speed factor). "
+                   f"Upwind zones receive no additional directional weighting (×1.0).")
+        설명.append(f"Placement implication: at equal distance, sensors covering zones toward {to_name} "
+                   f"contribute more to risk-weighted coverage. Evacuation routing also penalizes travel through this direction.")
     else:
-        설명.append(f"풍속이 {WIND_MIN_SPEED_MS} m/s 미만이라 무풍으로 보고 방향 보정을 하지 않습니다 "
-                   f"(등방 확산 — 기존 결과와 동일).")
+        설명.append(f"Wind speed is below {WIND_MIN_SPEED_MS} m/s, so directional adjustment is disabled "
+                   f"(isotropic dispersion).")
     if ws < 2.0:
-        설명.append("정온 조건: 밀폐도가 있고 가스 취급이 있는 구역은 가스가 체류·축적되어 "
-                   "위험도를 ×1.10 합니다.")
+        설명.append("Low-wind condition: enclosed zones handling gas receive a retention adjustment because gas may accumulate, "
+                   "increasing risk by ×1.10.")
     elif ws >= 8.0:
-        설명.append("강풍 조건: 개방된 화기·가연물 구역은 불티 비산으로 위험도를 ×1.10 합니다.")
+        설명.append("Strong-wind condition: open zones containing ignition or combustible sources receive a ×1.10 risk adjustment for potential ember spread.")
 
     out = {"있음": True, "wd_deg": wd, "ws_ms": ws, "풍향_방위": from_name,
            "이동_방위": to_name, "이동_방위_deg": to_deg, "등급": grade,
            "최대_풍하측_가중_pct": round(max_gain_pct, 1),
            "설명": 설명,
-           "한계": ("방향 코사인 × 풍속의 1차 근사입니다. 벽 차폐·천장고·국지 난류·공조는 "
-                  "미반영이며 CFD 결과가 아닙니다.")}
+           "한계": ("This is a first-order approximation using directional cosine and wind speed. Wall shielding, ceiling height, local turbulence, and HVAC effects are "
+                  "not modeled; this is not a CFD simulation.")}
     for k in ("출처", "기간", "stn", "n", "평균_풍속_m_s", "최대_풍속_m_s"):
         if k in weather:
             out[k] = weather[k]
@@ -117,8 +117,8 @@ def hazard_context(hazards, weather=None):
     """발생원 목록을 UI 표시용 한국어 설명으로 바꾼다 (다중 발생원·다중 유형 지원)."""
     if not hazards:
         return {"active": False, "n": 0, "목록": [],
-                "설명": ["재해 시나리오를 적용하지 않았습니다 — 모든 구역 위험도가 균일(0.5)입니다."],
-                "한계": "재해 미적용 기준선입니다."}
+                "설명": ["No hazard scenario is active — all zones use the uniform risk baseline (0.5)."],
+                "한계": "Baseline case without hazard adjustment."}
 
     wc = wind_context(weather)
     kinds = []
@@ -134,22 +134,22 @@ def hazard_context(hazards, weather=None):
             "x_m": h.get("x_m"), "y_m": h.get("y_m"),
             "radius_m": h.get("radius_m"), "intensity": inten,
             "origin": h.get("origin", "manual"),
-            "설명": (f"{h.get('id')} {ko} — 위치 ({h.get('x_m')}, {h.get('y_m')}) m, "
-                    f"영향 반경 {h.get('radius_m')} m, 세기 {inten}. "
-                    f"반경 안 구역은 위험도 최대 +{peak:.0f}%, 반경 밖은 (R/거리)² 로 감쇠합니다"
-                    f"(유형 계수 {ko} ×{kg}).")})
+            "설명": (f"{h.get('id')} {ko} — location ({h.get('x_m')}, {h.get('y_m')}) m, "
+                    f"impact radius {h.get('radius_m')} m, intensity {inten}. "
+                    f"zones within the impact radius receive up to +{peak:.0f}% additional risk weighting; outside the radius, the effect decays as (R/distance)²"
+                    f"(hazard-type coefficient: {ko} ×{kg}).")})
 
-    설명 = [f"재해 {len(hazards)}건 적용: " + ", ".join(sorted(set(kinds))) + "."]
-    설명.append("발생원이 여러 개일 때는 가중을 더하지 않고 가장 큰 값(지배 발생원)을 씁니다 — "
-               "중첩 과대평가를 막기 위한 가정입니다.")
+    설명 = [f"Hazard sources active: {len(hazards)} — " + ", ".join(sorted(set(kinds))) + "."]
+    설명.append("When multiple hazard sources overlap, their weights are not summed; the maximum contribution from the dominant source is used — "
+               "this avoids overestimating risk in overlapping regions.")
     if wc.get("있음") and wc.get("이동_방위"):
-        설명.append(f"각 발생원의 {wc['이동_방위']}쪽(풍하측) 구역은 추가로 최대 "
-                   f"+{wc['최대_풍하측_가중_pct']:.0f}% 가중됩니다.")
-    설명.append("현재 값은 사람이 지정한 예시 설정값이며 실측 감지 센서 신호가 아닙니다 "
-               "(센서 연동 시 동일 형식으로 자동 대체됩니다).")
+        설명.append(f"Downwind zones toward {wc['이동_방위']} receive up to an additional "
+                   f"+{wc['최대_풍하측_가중_pct']:.0f}% risk weighting.")
+    설명.append("Current hazard inputs are manually configured demo values and are not live physical sensor measurements "
+               "(the same interface could later accept live sensor feeds).")
     return {"active": True, "n": len(hazards), "목록": 목록, "설명": 설명,
-            "한계": ("거리 감쇠 1차 근사입니다. 가스 물성·환기량·벽 차폐를 반영한 확산 계산이 "
-                   "아니며 반경·세기는 데모 가정값입니다.")}
+            "한계": ("Hazard propagation uses a first-order distance-decay approximation. Gas properties, ventilation rates, and wall shielding are "
+                   "not modeled, and radius/intensity values are demo assumptions.")}
 
 
 def zone_hazard_risk(zone_centers, hazards, weather=None, base=0.5):
@@ -189,7 +189,7 @@ def sensor_hazard_effect(sensors, hazards, weather=None):
         sx, sy, sr = float(s["x_m"]), float(s["y_m"]), float(s["radius_m"])
         if not hazards:
             out[sid] = {"재해_적용": False,
-                        "설명": "재해 시나리오 미적용 — 이 센서의 재해 감지 기여는 계산하지 않았습니다."}
+                        "설명": "No hazard scenario is active — hazard-detection contribution is not evaluated for this sensor."}
             continue
         best = None
         for h in hazards:
@@ -209,19 +209,19 @@ def sensor_hazard_effect(sensors, hazards, weather=None):
         # 확산이 센서 커버 경계에 닿기까지의 여유 거리 (반경 밖일 때만 의미)
         gap = max(0.0, best["d"] - best["hr"] - sr)
 
-        parts = [f"{h.get('id')} {ko}까지 {best['d']:.1f} m"]
+        parts = [f"{h.get('id')} {ko} is {best['d']:.1f} m away"]
         if pct >= 1.0:
-            parts.append(f"발생원 영향권의 {pct:.0f}%를 커버 — 초기 감지 기여 있음")
+            parts.append(f"Covers {pct:.0f}% of the hazard impact area — contributes to early detection")
         else:
-            parts.append("발생원 영향권과 겹치지 않음 — 초기 감지 기여 없음")
+            parts.append("Does not overlap the hazard impact area — no direct early-detection contribution")
         if inside:
-            parts.append("센서가 영향 반경 안에 있어 자신도 피해 범위입니다(내구성·이중화 검토 필요)")
+            parts.append("The sensor lies within the hazard impact radius and may itself be exposed; resilience or redundancy should be considered")
         elif gap > 0:
-            parts.append(f"확산이 {gap:.1f} m 더 번지면 커버 경계에 닿습니다")
+            parts.append(f"An additional {gap:.1f} m of propagation would reach this sensor's coverage boundary")
         if downwind and to_name:
-            parts.append(f"발생원의 {to_name}쪽(풍하측)에 있어 확산 경로상 우선순위가 높습니다")
+            parts.append(f"Located downwind toward {to_name}, giving this sensor higher priority along the modeled dispersion path")
         elif weather and wc.get("있음") and to_name:
-            parts.append("풍상측이라 확산 경로에서는 우선순위가 낮습니다")
+            parts.append("Located upwind, so it has lower priority along the modeled dispersion path")
 
         out[sid] = {"재해_적용": True, "담당_재해": h.get("id"), "담당_재해_유형": ko,
                     "거리_m": round(best["d"], 2), "반경내": bool(inside),
@@ -324,11 +324,11 @@ def evacuation_plan(zones, rows, cols, risk, exits=None, origins=None,
     """
     n = len(zones)
     if n == 0 or rows * cols != n:
-        return {"active": False, "설명": ["구역 격자를 확인할 수 없어 대피 경로를 계산하지 못했습니다."]}
+        return {"active": False, "설명": ["Evacuation routes could not be computed because the zone grid is unavailable."]}
     cs = _centers(zones)
     ex, ex_input = _norm_exits(zones, rows, cols, exits)
 
-    # 발생원 영향 반경 안 출구는 폐쇄로 본다 (법정 2개소 이상 확보 취지)
+    # 발생원 impact radius 안 출구는 폐쇄로 본다 (법정 2개소 이상 확보 취지)
     for e in ex:
         e["usable"], e["blocked_by"], e["blocked_dist_m"] = True, None, None
         for h in hazards or []:
@@ -434,7 +434,7 @@ def evacuation_plan(zones, rows, cols, risk, exits=None, origins=None,
 
     if not routes:
         return {"active": False, "exits": ex,
-                "설명": ["출구까지 도달 가능한 경로가 없습니다 — 출구 위치·격자 설정을 확인하세요."]}
+                "설명": ["No reachable route to an exit was found — check the exit locations and zone-grid configuration."]}
 
     cong = _congestion(routes, zones, cs, risk, usable, ori_input)
     for r in routes:
@@ -442,43 +442,43 @@ def evacuation_plan(zones, rows, cols, risk, exits=None, origins=None,
 
     wc = wind_context(weather)
     설명 = []
-    설명.append((f"입력된 출구 {len(ex)}곳" if ex_input
-                else f"출구 입력이 없어 격자 네 모서리 {len(ex)}곳을 출구로 가정")
-               + f" · 출발 위치 {len(routes)}곳"
-               + ("(작업자 지정)" if ori_input else "(지정 없음 → 전 구역 자동)") + ".")
+    설명.append((f"{len(ex)} user-defined exits" if ex_input
+                else f"No exits provided; {len(ex)} grid-corner exits are assumed")
+               + f" · {len(routes)} evacuation origins"
+               + (" (worker-defined)" if ori_input else " (all zones automatically evaluated)") + ".")
     if not ex_input:
-        설명.append("출구는 가정값입니다 — 실제 도면 기준 출구를 입력하면 그 좌표로 다시 계산합니다.")
+        설명.append("Exit locations are assumed in this run. Provide actual floor-plan exits to recompute routes using those coordinates.")
     blocked = [e for e in ex if not e["usable"]]
     if blocked:
-        설명.append("폐쇄 출구: " + ", ".join(
-            f"{e['id']}({e['blocked_by']} 영향 반경 안, {e['blocked_dist_m']} m)" for e in blocked)
-            + (" — 사용 가능한 출구가 없어 부득이 전체를 후보로 두었습니다(경보 상황)."
-               if all_blocked else " — 후보에서 제외했습니다."))
-    설명.append("경로 선택 기준: 최단거리가 아니라 "
-               f"'구간거리 × (1 + {RISK_PENALTY:.0f}×위험도)' 합이 최소인 출구·경로입니다. "
-               "같은 거리라면 위험도가 낮은 구역을 지나는 쪽이 이깁니다.")
+        설명.append("Unavailable exits: " + ", ".join(
+            f"{e['id']}({e['blocked_by']} within the hazard impact radius, {e['blocked_dist_m']} m)" for e in blocked)
+            + (" — all exits are affected, so they remain in the candidate set for warning-mode analysis."
+               if all_blocked else " — removed from the candidate set."))
+    설명.append("Route-selection objective: rather than minimizing distance alone, "
+               f"the selected route minimizes Σ[segment distance × (1 + {RISK_PENALTY:.0f} × zone risk)]. "
+               "For routes of similar length, paths through lower-risk zones are preferred.")
     diff = [r for r in routes if r["최단거리_대안"] and r["최단거리_대안"]["exit"] != r["exit"]]
     if diff:
-        설명.append(f"출발 위치 {len(diff)}곳은 '최단거리 출구'와 '위험 반영 출구'가 다릅니다: "
+        설명.append(f"{len(diff)} origins select a different exit when risk is included instead of distance alone: "
                    + ", ".join(f"{r['origin']}({r['최단거리_대안']['exit']}→{r['exit']})"
                                for r in diff[:6])
-                   + (" 등" if len(diff) > 6 else "")
-                   + " — 거리를 조금 더 쓰고 위험 노출을 줄이는 선택입니다.")
+                   + (" etc." if len(diff) > 6 else "")
+                   + " — these routes accept additional travel distance to reduce modeled risk exposure.")
     else:
-        설명.append("모든 출발 위치에서 최단거리 출구와 위험 반영 출구가 같습니다 — "
-                   "현재 재해·기상 조건에서는 거리와 안전이 상충하지 않습니다.")
+        설명.append("For every origin, the minimum-distance exit and risk-aware exit are identical — "
+                   "under the current hazard and weather conditions, distance and modeled risk do not conflict.")
     over = [r for r in routes if r["지표"]["법정_보행거리_초과"]]
     if over:
-        설명.append(f"법정 보행거리 {WALK_LIMIT_M:.0f} m를 초과하는 출발 위치가 "
-                   f"{len(over)}곳입니다("
+        설명.append(f"Origins exceeding the configured {WALK_LIMIT_M:.0f} m walking-distance threshold: "
+                   f"{len(over)} ("
                    + ", ".join(f"{r['origin']} +{r['지표']['초과_m']} m" for r in over[:6])
-                   + (" 등" if len(over) > 6 else "")
-                   + ") — 출구 추가·중간 대피 구역 검토가 필요합니다.")
+                   + (" etc." if len(over) > 6 else "")
+                   + ") — consider additional exits or intermediate refuge locations.")
     else:
-        설명.append(f"모든 출발 위치가 법정 보행거리 {WALK_LIMIT_M:.0f} m 이내입니다.")
+        설명.append(f"All origins are within the configured {WALK_LIMIT_M:.0f} m walking-distance threshold.")
     if wc.get("있음") and wc.get("이동_방위") and hazards:
-        설명.append(f"연기·가스가 {wc['이동_방위']}쪽으로 흐르므로 그 방향 구역은 위험도가 "
-                   f"가중되어 있고, 경로는 자연히 그 방향을 덜 지나도록 계산됩니다.")
+        설명.append(f"Because smoke and gas are modeled as dispersing toward {wc['이동_방위']}, zones in that direction receive higher risk weights, "
+                   f"so the routing objective tends to avoid them.")
     설명 += cong["설명"]
 
     worst = max(routes, key=lambda r: r["지표"]["예상_소요_s"])
@@ -493,10 +493,10 @@ def evacuation_plan(zones, rows, cols, risk, exits=None, origins=None,
                    "총_이동거리_m": 총거리,
                    "법정초과_출발수": len(over)},
             "설명": 설명,
-            "한계": ("격자 4방향 인접·구역 중심 직선 이동 가정입니다. 벽·문·계단·시간 전개"
-                   "(큐 형성·역류)를 반영하지 않으며 인파 시뮬레이터가 아닙니다. 혼잡은 "
-                   "통로 용량 기준 1차 근사이고, 정식 배정 최적화는 파트 2-B 대피 QUBO"
-                   "(작업조 4 × 경로 3, 혼잡 이차항)가 담당합니다.")}
+            "한계": ("The model assumes four-neighbor grid connectivity and straight-line movement between zone centers. Walls, doors, stairs, and time-dependent crowd dynamics "
+                   "(including queue formation and counterflow) are not modeled. This is not a crowd simulation; congestion uses "
+                   "a first-order corridor-capacity approximation. The separate evacuation QUBO handles assignment optimization "
+                   "(4 worker groups × 3 candidate routes with a quadratic congestion term).")}
 
 
 # 통로 용량 상수 (D2-FLOW: 유효폭 = 통로폭 − 경계층 2×0.15 m, 단위폭 유동률 1.3 인/(m·s))
@@ -534,18 +534,18 @@ def _congestion(routes, zones, cs, risk, usable, has_people):
     설명 = []
     대안 = None
     if not shared:
-        설명.append("경로가 겹치는 구간이 없어 통로 혼잡이 발생하지 않습니다 — "
-                   "각 출발 위치가 서로 다른 통로로 빠져나갑니다.")
+        설명.append("No shared corridor segments were detected, so no modeled congestion occurs — "
+                   "each evacuation origin uses a separate path.")
     else:
         top = shared[0]
-        설명.append(f"통로 공유 구간 {len(shared)}곳이 있습니다. 가장 붐비는 곳은 "
-                   f"{top['구간']}으로 출발 위치 {top['출발점_수']}곳"
-                   + (f"·{top['인원']}명이 함께 지나며, 유효폭 "
-                      f"{CORRIDOR_WIDTH_M - 2 * BOUNDARY_LAYER_M:.1f} m 기준 통로 용량이 "
-                      f"{EDGE_CAPACITY_PS:.2f} 인/s이므로 통과에 {top['통과_소요_s']}초가 걸려 "
-                      f"자유 통행({top['자유통과_s']}초)보다 {top['지연_s']}초 지연됩니다."
+        설명.append(f"There are {len(shared)} shared corridor segments. The most congested segment is "
+                   f"{top['구간']}, used by {top['출발점_수']} evacuation origins"
+                   + (f" with {top['인원']} people. With an effective corridor width of "
+                      f"{CORRIDOR_WIDTH_M - 2 * BOUNDARY_LAYER_M:.1f} m, the modeled corridor capacity is "
+                      f"{EDGE_CAPACITY_PS:.2f} persons/s, giving a traversal time of {top['통과_소요_s']} s, "
+                      f"which is {top['지연_s']} s slower than free-flow travel ({top['자유통과_s']} s)."
                       if top.get("인원") else
-                      "이 지나갑니다(인원 미입력 — 작업자 인원을 넣으면 지연 초를 계산합니다)."))
+                      " use this segment. Occupancy was not provided, so congestion delay is not estimated."))
         # 분산 대안: 공유 구간을 쓰는 출발점 중 하나를 다른 출구로 돌릴 때 비용 증가가 가장 작은 안
         best = None
         for r in routes:
@@ -559,19 +559,19 @@ def _congestion(routes, zones, cs, risk, usable, has_people):
                         "거리_증가_m": round(alt["거리_m"] - r["지표"]["거리_m"], 1)}
         if best:
             대안 = best
-            설명.append(f"분산 대안: {best['origin']}을 {best['현재_출구']} 대신 "
-                       f"{best['대안_출구']}로 유도하면 이동거리는 "
-                       f"{best['거리_증가_m']:+.1f} m 늘지만 위 공유 구간의 동시 통행이 줄어듭니다. "
-                       f"이렇게 '개별 최적 vs 전체 최적'이 갈리는 지점이 대피 QUBO의 혼잡 "
-                       f"이차항이 실제로 하는 일입니다.")
+            설명.append(f"Load-balancing alternative: reroute {best['origin']} from {best['현재_출구']} to "
+                       f"{best['대안_출구']}. Travel distance changes by "
+                       f"{best['거리_증가_m']:+.1f} m, while reducing simultaneous use of the shared corridor. "
+                       f"This tradeoff between locally optimal routes and system-level coordination is captured by the evacuation QUBO's "
+                       f"quadratic congestion term.")
         else:
-            설명.append("공유 구간을 우회할 다른 출구 후보가 없어 분산 대안을 만들 수 없습니다 — "
-                       "출구를 추가하는 것이 근본 해법입니다.")
+            설명.append("No alternative exit is available to avoid the shared corridor — "
+                       "adding another evacuation exit would be the primary mitigation.")
     return {"공유_구간": shared[:8], "공유_구간_수": len(shared), "분산_대안": 대안,
             "용량_가정": {"통로폭_m": CORRIDOR_WIDTH_M, "경계층_m": BOUNDARY_LAYER_M,
                       "단위폭_유동률_인_m_s": SPECIFIC_FLOW,
                       "유효_용량_인_s": round(EDGE_CAPACITY_PS, 2),
-                      "출처": "D2-FLOW (보행속도 1.19 m/s, 단위폭 유동률 1.3 인/(m·s))"},
+                      "출처": "D2-FLOW assumption (walking speed 1.19 m/s, specific flow 1.3 persons/(m·s))"},
             "설명": 설명}
 
 
@@ -582,44 +582,44 @@ def _route_sentences(r, zones, risk, hazards, weather, cong):
     via = " → ".join(ids[1:-1]) if len(ids) > 2 else None
     s = []
     s.append(f"{r['origin']}"
-             + (f"({r['n']:.0f}명)" if r["n"] else "")
-             + f" — 출발 ({r['x_m']}, {r['y_m']}) m, {r['origin_zone']} 구역"
-             + f"(위험도 {risk[r['zone_path'][0]]:.2f}) → "
-             + (f"{via} 경유 → " if via else "직접 → ")
-             + f"{r['exit']} 출구.")
-    s.append(f"이동 {m['거리_m']} m · 예상 {m['예상_소요_s']}초(보행 {FREE_SPEED_MS} m/s) · "
-             f"위험 노출 {m['위험노출']} · 통과 구역 최대 위험도 {m['최대_통과_위험도']}"
-             + (f" · 법정 {WALK_LIMIT_M:.0f} m를 {m['초과_m']} m 초과"
-                if m["법정_보행거리_초과"] else f" · 법정 {WALK_LIMIT_M:.0f} m 이내") + ".")
+             + (f" ({r['n']:.0f} people)" if r["n"] else "")
+             + f" — origin ({r['x_m']}, {r['y_m']}) m, zone {r['origin_zone']}"
+             + f" (risk {risk[r['zone_path'][0]]:.2f}) → "
+             + (f"via {via} → " if via else "direct → ")
+             + f"exit {r['exit']}.")
+    s.append(f"Travel distance {m['거리_m']} m · estimated time {m['예상_소요_s']} s (walking speed {FREE_SPEED_MS} m/s) · "
+             f"risk exposure {m['위험노출']} · maximum traversed-zone risk {m['최대_통과_위험도']}"
+             + (f" · exceeds the configured {WALK_LIMIT_M:.0f} m walking-distance threshold by {m['초과_m']} m"
+                if m["법정_보행거리_초과"] else f" · within the configured {WALK_LIMIT_M:.0f} m walking-distance threshold") + ".")
     if len(r["출구_후보"]) > 1:
         others = ", ".join(f"{c['exit']} {c['cost']}" for c in r["출구_후보"][1:4])
-        s.append(f"출구 선택 근거: {r['exit']} 비용 {r['cost']} < {others} — "
-                 f"거리와 위험을 함께 본 비용이 가장 낮습니다.")
+        s.append(f"Exit selection rationale: {r['exit']} objective cost {r['cost']} < {others} — "
+                 f"it has the lowest combined distance-and-risk objective.")
     alt = r["최단거리_대안"]
     if alt and alt["exit"] != r["exit"]:
-        s.append(f"거리만 보면 {alt['exit']}가 {alt['지표']['거리_m']} m로 "
-                 f"{alt['지표']['거리_m'] - m['거리_m']:+.1f} m 짧지만, 위험 노출이 "
-                 f"{alt['지표']['위험노출']}(선택 경로 {m['위험노출']})로 커서 택하지 않았습니다. "
-                 f"= '가까운 문'보다 '안전한 문'을 고른 경우입니다.")
+        s.append(f"By distance alone, {alt['exit']} is {alt['지표']['거리_m']} m away and "
+                 f"{abs(alt['지표']['거리_m'] - m['거리_m']):.1f} m shorter, but its modeled risk exposure is "
+                 f"{alt['지표']['위험노출']} versus {m['위험노출']} for the selected route, so it was not chosen. "
+                 f"The model therefore prefers a lower-risk exit over the closest exit.")
     elif alt and alt["지표"]["거리_m"] < m["거리_m"] - 0.05:
-        s.append(f"같은 출구라도 최단거리 경로({alt['지표']['거리_m']} m)보다 "
-                 f"{m['거리_m'] - alt['지표']['거리_m']:+.1f} m 우회해 위험 구역을 피했습니다.")
+        s.append(f"For the same exit, the selected path detours from the shortest route ({alt['지표']['거리_m']} m) by "
+                 f"{m['거리_m'] - alt['지표']['거리_m']:+.1f} m to reduce travel through higher-risk zones.")
     else:
-        s.append("이 출발 위치에서는 최단거리 경로가 곧 최저위험 경로입니다.")
+        s.append("For this origin, the shortest route is also the lowest-risk route.")
     if hazards:
         near = min((math.hypot(p["x_m"] - float(h["x_m"]), p["y_m"] - float(h["y_m"])), h.get("id"))
                    for p in r["polyline"] for h in hazards)
-        s.append(f"경로가 발생원({near[1]})에 가장 가까워지는 거리는 {near[0]:.1f} m입니다.")
+        s.append(f"The route passes within {near[0]:.1f} m of hazard source {near[1]}.")
     wc = wind_context(weather)
     if wc.get("있음") and wc.get("이동_방위") and hazards:
-        s.append(f"연기 이동 방향은 {wc['이동_방위']}쪽입니다 — 풍하측 구역은 위험도가 "
-                 f"가중돼 경로 비용이 올라가므로 자동으로 덜 지나게 됩니다.")
+        s.append(f"Modeled smoke dispersion is toward {wc['이동_방위']} — downwind zones receive higher risk weights, "
+                 f"so the routing objective tends to avoid them.")
     mine = [c for c in cong["공유_구간"] if r["origin"] in c["사용_출발점"]]
     if mine:
         c = mine[0]
-        s.append(f"주의: {c['구간']} 구간을 다른 출발 위치 {c['출발점_수'] - 1}곳과 공유합니다"
-                 + (f"(합계 {c['인원']}명, 통과 {c['통과_소요_s']}초)" if c.get("인원") else "")
-                 + " — 동시 대피 시 정체 가능 구간입니다.")
+        s.append(f"Congestion warning: segment {c['구간']} is shared with {c['출발점_수'] - 1} other evacuation origins"
+                 + (f" ({c['인원']} people total, traversal {c['통과_소요_s']} s)" if c.get("인원") else "")
+                 + " — simultaneous evacuation may create congestion on this segment.")
     return s
 
 
@@ -631,7 +631,7 @@ def evacuation_demo(zones, rows, cols, risk, hazards=None, weather=None,
     """
     n = len(zones)
     if n == 0 or rows * cols != n:
-        return {"active": False, "설명": ["구역 격자를 확인할 수 없어 대피 경로를 계산하지 못했습니다."]}
+        return {"active": False, "설명": ["Evacuation routes could not be computed because the zone grid is unavailable."]}
     cs = _centers(zones)
     ex_in = None
     if exits:

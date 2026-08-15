@@ -76,6 +76,7 @@ def _nelder_mead(f, x0, steps=200, alpha=1.0, gamma_c=2.0, rho=0.5, sigma=0.5, i
     return simplex[i], fv[i]
 
 
+
 def run_qaoa(E_raw, p=1, shots=2048, seed=42):
     """반환: dict(최적 파라미터, 근사비, 최적해 확률, 샘플 최빈해 등)"""
     t0 = time.perf_counter()
@@ -117,6 +118,30 @@ def run_qaoa(E_raw, p=1, shots=2048, seed=42):
         "prob_optimal_vs_uniform": round(p_opt * 2 ** N, 2),  # 균등 대비 증폭 배수
         "time_s": time.perf_counter() - t0,
     }
+    # Top QAOA measurement states for visualization.
+    # Bit order is S1 -> S12 so each bit maps directly to a sensor candidate.
+    top_indices = np.argsort(probs)[-5:][::-1]
+
+    out["top_states"] = [
+        {
+            "rank": rank + 1,
+            "state_index": int(idx),
+            "bitstring": "".join(
+                str((int(idx) >> j) & 1) for j in range(N)
+            ),
+            "selected_sensors": [
+                f"S{j + 1}"
+                for j in range(N)
+                if ((int(idx) >> j) & 1)
+            ],
+            "probability": round(float(probs[idx]), 6),
+            "energy": round(float(E_raw[idx]), 6),
+        }
+        for rank, idx in enumerate(top_indices)
+    ]
+
+
+
     if shots:
         rng = np.random.default_rng(seed)
         samples = rng.choice(2 ** N, size=shots, p=probs)

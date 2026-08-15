@@ -172,9 +172,9 @@ def explain(a, risk, sensors, x_sel, zones, K, tau_show=0.25, weak_tau=0.30):
                     if a[zi, j] >= tau_show and not any(x2[k] and a[zi, k] >= tau_show for k in range(n))]
             parts = []
             if uniq:
-                parts.append(f"{'·'.join(uniq)} 구역을 사실상 단독으로 커버")
-            parts.append(f"이 센서를 빼면 전체 커버리지가 {drop:.1f}%p 떨어짐")
-            parts.append(f"커버 기여 {rank[j]}위/{n}")
+                parts.append(f"{'·'.join(uniq)} zones are covered almost exclusively by this sensor")
+            parts.append(f"Removing this sensor reduces overall coverage by {drop:.1f} percentage points")
+            parts.append(f"Coverage contribution rank: {rank[j]}/{n}")
             it["reason"] = " · ".join(parts)
             it["removal_drop_pp"] = round(drop, 2)
         else:
@@ -185,28 +185,28 @@ def explain(a, risk, sensors, x_sel, zones, K, tau_show=0.25, weak_tau=0.30):
             it["add_gain_pp"] = round(gain, 2)
             it["overlap_pct"] = round(overlap * 100)
             if mass[j] < 0.35 * max_mass or not zj:
-                it["reason"] = (f"커버 범위가 작음(기여 {rank[j]}위/{n}) — 위치가 구석이거나 "
-                                f"반경 대비 닿는 구역이 적어 제외. 추가해도 +{gain:.1f}%p 효과뿐")
+                it["reason"] = (f"Limited coverage contribution (rank {rank[j]}/{n}) — the candidate is near the boundary or "
+                                f"reaches relatively few zones within its detection radius. Adding it improves coverage by only +{gain:.1f} percentage points.")
             elif overlap >= 0.6:
                 ov_k = max((k for k in range(n) if xs[k]),
                            key=lambda k: float(np.sum(a[:, j] * a[:, k] * risk)), default=None)
-                ov_id = sensors[ov_k]["id"] if ov_k is not None else "선택 센서"
-                it["reason"] = (f"커버 영역의 {overlap * 100:.0f}%가 이미 {ov_id} 등과 중복 — "
-                                f"추가 효과가 +{gain:.1f}%p에 그쳐 예산(K={K})을 다른 곳에 쓰는 것이 유리")
+                ov_id = sensors[ov_k]["id"] if ov_k is not None else "a selected sensor"
+                it["reason"] = (f"{overlap * 100:.0f}% of its coverage overlaps with {ov_id} or other selected sensors — "
+                                f"the marginal gain is only +{gain:.1f} percentage points, so the K={K} sensor budget is better allocated elsewhere.")
             else:
-                it["reason"] = (f"기여는 있으나(기여 {rank[j]}위/{n}) 센서 수 제한 K={K}에서 "
-                                f"우선순위가 밀림 — 추가 시 +{gain:.1f}%p, 선택된 센서를 빼야 넣을 수 있음")
+                it["reason"] = (f"This candidate contributes coverage (rank {rank[j]}/{n}), but under the K={K} sensor limit "
+                                f"it has lower priority. Adding it provides +{gain:.1f} percentage points and would require replacing a selected sensor.")
         items.append(it)
 
     weak = [{"id": zones[zi]["id"], "cov": round(float(covsel[zi]), 3)}
             for zi in range(Z) if covsel[zi] < weak_tau]
     zones_info = [{"id": z["id"], "x0": z["x0"], "y0": z["y0"], "x1": z["x1"], "y1": z["y1"],
                    "cov": round(float(covsel[zi]), 3)} for zi, z in enumerate(zones)]
-    summary = (f"선택된 {int(xs.sum())}개 센서로 전체 위험가중 커버리지 {wtot * 100:.1f}% 달성. "
-               + (f"취약 구역(커버율 {int(weak_tau * 100)}% 미만): "
+    summary = (f"Selected {int(xs.sum())} sensors achieve {wtot * 100:.1f}% overall risk-weighted coverage. "
+               + (f"High-risk zones below the {int(weak_tau * 100)}% coverage threshold: "
                   + ", ".join(f"{w['id']}({w['cov'] * 100:.0f}%)" for w in weak)
-                  + " — 후보 추가·반경 확대·K 증가를 검토하세요."
-                  if weak else "모든 구역이 기준 커버율 이상입니다."))
+                  + " — consider adding candidate locations, increasing detection radius, or increasing K."
+                  if weak else "All zones meet the target coverage threshold."))
     return {"summary": summary, "total_coverage_pct": round(wtot * 100, 1),
             "weak_zones": weak, "sensors": items, "zones_info": zones_info}
 
@@ -217,7 +217,7 @@ def run_ionq_cloud(Q, const, n, gammas, betas, shots=1024):
     from qiskit_ionq import IonQProvider
     key = os.environ.get("IONQ_API_KEY")
     if not key:
-        raise RuntimeError("IONQ_API_KEY 없음")
+        raise RuntimeError("IONQ_API_KEY is not configured")
     # Ising 변환 (qaoa_qiskit.qubo_to_ising와 동일 수식, 가변 n)
     Qu = np.triu(Q)
     h = np.zeros(n)
@@ -259,9 +259,9 @@ def optimize(req):
     sensors = req["sensors"]
     n = len(sensors)
     if n < 2:
-        return {"error": "센서를 2개 이상 배치하세요."}
+        return {"error": "Place at least two sensor candidates."}
     if n > MAX_N:
-        return {"error": f"테스트본은 센서 {MAX_N}개까지 지원합니다 (전수조사·시뮬레이터 한도). 현재 {n}개."}
+        return {"error": f"This demo supports up to {MAX_N} sensor candidates due to exhaustive-search and statevector limits. Current count: {n}."}
     K = min(int(req.get("K", 6)), n)
     rows, cols = int(req.get("grid_rows", 3)), int(req.get("grid_cols", 4))
     w = float(req.get("site_width_m", 60))
@@ -269,7 +269,7 @@ def optimize(req):
 
     zones = zone_grid(w, h, rows, cols)
     # 재해 발생원(위치·반경·유형) — PM 지시 2026-07-27. 센서 미연동 상태의 예시 설정값이며,
-    # 지정하지 않으면 기존과 동일하게 균일 위험도(0.5)로 동작한다.
+    # 지정하지 않으면 기존과 동일하게 uniform risk baseline (0.5)로 동작한다.
     # `hazards`(다중, 2026-07-27 확장)를 우선 쓰고 구버전 UI의 `fire`(단일)도 계속 받는다.
     haz_req = req.get("hazards")
     if haz_req is None:
@@ -303,7 +303,8 @@ def optimize(req):
                        "n_selected": int(sum(qx)), "weighted_coverage": round(covq, 4),
                        "approx_ratio": qa["approx_ratio"], "prob_optimal": qa["prob_optimal"],
                        "optimal_found": bool(qa.get("sampled_optimal_found")),
-                       "backend": "ideal(statevector)"}
+                        "backend": "ideal(statevector)",
+                       "top_states": qa.get("top_states", [])}
 
     warn = None
     if req.get("backend") == "ionq_sim":
@@ -317,7 +318,7 @@ def optimize(req):
                                "optimal_found": abs(ion["best_energy"] - ex["energy"]) < 1e-6,
                                "backend": ion["backend"], "job_id": ion["job_id"]}
         except Exception as e:
-            warn = f"IonQ 클라우드 실패({type(e).__name__}) — ideal 결과로 폴백"
+            warn = f"IonQ Cloud execution failed ({type(e).__name__}) — falling back to the ideal statevector simulator"
 
     sel = [s["id"] for s, v in zip(sensors, methods["qaoa"]["x"]) if v]
     expl = explain(a, risk, sensors, methods["qaoa"]["x"], zones, K)
@@ -345,14 +346,14 @@ def optimize(req):
             "weather": hx.wind_context(weather), "evacuation": evac,
             "methods": methods, "time_s": round(time.perf_counter() - t0, 2),
             "warning": warn,
-            "notes": ("데모 구성: 균일 격자 구역·"
-                      + ("재해 발생원 기준 위험도(예시 설정값, 실측 센서 아님)"
-                         if fire_srcs else "균일 위험도(0.5)")
-                      + ("·기상청 관측 풍향 보정 적용" if (weather and fire_srcs)
-                         else "·기상 보정 미적용(무풍 등방)" if not weather
-                         else "·기상 관측값은 있으나 발생원이 없어 방향 보정 무효")
-                      + "·균일 비용. 실제 파이프라인의 위험 점수·법적 hard 제약·실비용과 다름. "
-                        "실기 QPU 미사용.")}
+            "notes": ("Demo configuration: uniform grid zones · "
+                      + ("hazard-source-based risk (simulated input, not live sensor data)"
+                         if fire_srcs else "uniform risk baseline (0.5)")
+                      + (" · weather-based wind-direction adjustment applied" if (weather and fire_srcs)
+                         else " · weather adjustment disabled (isotropic dispersion)" if not weather
+                         else " · weather observations available, but directional adjustment is inactive without a hazard source")
+                      + " · uniform installation cost. The interactive demo simplifies the full pipeline's risk scoring, hard constraints, and real-world cost model. "
+                        "No physical QPU execution is claimed.")}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -379,7 +380,7 @@ class Handler(BaseHTTPRequestHandler):
                 with open(DEMO_PNG, "rb") as f:
                     self._send(200, f.read(), "image/png")
             else:
-                self._send(404, {"error": "데모 도면 없음: " + DEMO_PNG})
+                self._send(404, {"error": "Demo floor plan not found: " + DEMO_PNG})
         elif self.path == "/weather":
             # 풍향·풍속 관측 대표값과 그 의미 해설 (PM 1순위 지적 2번)
             self._send(200, hx.wind_context(current_weather()))
@@ -392,10 +393,10 @@ class Handler(BaseHTTPRequestHandler):
                              "presets": {k: {"설명": v.get("설명", ""),
                                              "sources": v.get("sources", [])}
                                          for k, v in cfg.get("presets", {}).items()},
-                             "비고": "예시 설정값이며 실측 감지 센서 연동분이 아니다."})
+                             "비고": "Simulated configuration values; not connected to live sensor measurements."})
         elif self.path == "/demo_layout":
             out = {"site_width_m": DEMO_SITE_WIDTH_M,
-                   "source": "CubiCasa5K plan 5570 (residential_public_dataset — 데모용)",
+                   "source": "CubiCasa5K plan 5570 (public residential floor-plan demo)",
                    "sensors": []}
             if os.path.exists(DEMO_SENSORS):
                 with open(DEMO_SENSORS, encoding="utf-8") as f:
@@ -418,5 +419,5 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"QRC2026 UI 테스트본: http://localhost:{PORT}  (종료: Ctrl+C)")
+    print(f"Quantum SafeON interactive demo: http://localhost:{PORT}  (Ctrl+C to stop)")
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
