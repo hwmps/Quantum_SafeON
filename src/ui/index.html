@@ -831,7 +831,7 @@ document.getElementById('optBtn').onclick=async()=>{
       (q.optimal_found!==undefined?`, Selected QAOA State Matches Exact Optimum: ${q.optimal_found?'Yes':'No'}`:'')+
       (q.job_id?`<br>IonQ job: ${q.job_id}`:'')+
       `<br>Exact Baseline: Energy ${ex.energy}, Coverage ${ex.weighted_coverage}`+
-      `<br>Exact-Optimal State Present Among Displayed QAOA States: ${exactOptimalRank ? `Yes (#${exactOptimalRank})` : 'No'}`+
+      `<br>Exact-Optimal State Among Top-5 Probability States: ${exactOptimalRank ? `Yes (#${exactOptimalRank})` : 'No'}`+
       `<br><span style="color:#999">${esc(d.notes)}</span>`;
     // --- 재해 해설 패널 (PM 1순위: 재해 설명) ---
     const hzw=document.getElementById('hzWhy');
