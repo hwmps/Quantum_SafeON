@@ -1,419 +1,752 @@
 # Quantum SafeON
 
-**위험 인자 기반 대피 경로 + 안전 센서 최적 배치 통합 시스템 (QUBO + QAOA)**
+### Risk-Aware Sensor Placement & Evacuation Optimization with QUBO / QAOA
 
-Quantum Reframing Challenge 2026 · 자유 주제 트랙 · 최종 갱신 2026-07-27
+Quantum SafeON is an optimization prototype that connects **hazard-aware sensor placement**, **evacuation routing**, **classical optimization baselines**, and **QAOA-based combinatorial optimization** in a single interactive workflow.
 
-> 도면과 기상 데이터로 현장의 위험을 계산하고, 그 위험을 두 개의 양자 최적화가 공유한다.
-> **센서는 대피 시스템의 눈이다. 어디를 보는지가 어디로 대피할지를 결정한다.**
+The system models how hazards, weather conditions, sensor coverage, evacuation routes, and corridor congestion interact — and provides an interactive floor-plan interface for exploring optimization results.
 
----
-
-## 최근 업데이트 (2026-07-27)
-
-| 변경 | 내용 |
-|---|---|
-| **D3 기상 실측 정본 확보** | 기상청 API 3종(단일시각·시간별·일자별) 모두 정상화. 관측소 108 시간자료 25행·일자료 7행 확보 → 대표값 **풍향 33.8°·풍속 3.8 m/s**(90퍼센타일)로 센서·대피·기상감도 3종 실험 재실행 완료. 배치 결과는 종전과 동일(약풍 구간에서 해가 기상 가정에 과민하지 않음) |
-| **재해 시나리오 모듈** (`src/fire_scenario.py`) | 화재·가스누출·연기 발생원을 위치·반경·세기로 지정. 다중 발생원은 지배 발생원 최대값 사용. `SensorFeedProvider` 스텁으로 실제 감지 센서 연동 지점을 분리 |
-| **해설 계층 신설** (`src/hazard_explain.py`) | 풍향·풍속의 의미, 재해 위험도 계산 근거, 센서별 재해 감지 기여, 대피 경로 근거를 **한국어 문장으로 생성**. UI 문구와 발표 자료를 한 곳에서 관리 |
-| **출구를 입력값으로** | 대피 출구를 이름·좌표로 입력하거나 도면 클릭으로 지정. 미입력 시 격자 모서리로 가정하며 **가정임을 결과에 표기**. 발생원 반경 안 출구는 폐쇄 처리 |
-| **위치별 대피 경로 서술 + 혼잡 분석** | 작업자 위치(인원)를 지정하면 그 지점, 없으면 전 구역에서 출발하는 경로를 계산. 출구 선택 근거·최단거리 방식과의 차이·법정 보행거리 초과·통로 공유 지연(초)·분산 대안을 문장으로 제시 |
-| **UI v0.4** (`src/ui/`) | 다중 재해 목록(유형 혼합·클릭 추가·이동·삭제), 기상 해설 패널, 대피 경로·출구·풍향 화살표 렌더링, 출발 위치별 결과 표 |
-| **레이어 토글 (가독성)** | 도면 위 요소를 **13개 레이어 체크박스**로 켜고 끈다. 색 칩이 붙어 범례 역할까지 겸하고, 프리셋 버튼(전체/대피만/센서만)과 경로 단일 선택(표 행 클릭)으로 겹침을 줄인다 |
-| **회귀 테스트 추가** (`tests/`) | `test_hazard_explain.py` 27건, `test_weather_kma.py` 3건, `test_ui_layers.mjs`(레이어·필터 헤드리스 검증) |
+> **Core idea:** sensors determine what parts of a site can be reliably observed, while evacuation decisions depend on the resulting risk landscape.
 
 ---
 
-## 목차
+## My Role & Contributions
 
-1. [문제와 접근](#1-문제와-접근)
-2. [지금까지 무엇이 되어 있는가](#2-지금까지-무엇이-되어-있는가)
-3. [핵심 결과 5가지](#3-핵심-결과-5가지)
-4. [실행 방법](#4-실행-방법)
-5. [저장소 구조](#5-저장소-구조)
-6. [데이터 현황](#6-데이터-현황)
-7. [QUBO 정식화 요약](#7-qubo-정식화-요약)
-8. [해석 원칙과 한계](#8-해석-원칙과-한계)
-9. [남은 작업](#9-남은-작업)
+Quantum SafeON was originally developed collaboratively as a team project for the **Quantum Reframing Challenge 2026**.
+
+### Original Team Project
+
+I contributed collaboratively to:
+
+- problem framing for hazard-aware sensor placement and evacuation optimization
+- translating safety requirements into optimization objectives and constraints
+- QUBO/QAOA methodology and experimental design
+- hazard, weather, sensor-coverage, and evacuation scenario modeling
+- interpretation of classical and quantum optimization results
+- system-level reasoning connecting sensor placement with evacuation planning
+- technical documentation and presentation of the end-to-end optimization workflow
+
+### Independent Extensions
+
+After the original team project, I independently extended the prototype as a portfolio-focused software project.
+
+My extensions include:
+
+- implemented extraction and ranking of the most probable **QAOA computational-basis states**
+- built an interactive **QAOA State Distribution** visualization
+- mapped QAOA bitstrings directly to physical sensor candidates on the floor plan
+- implemented hover-based **state-to-sensor highlighting**
+- refactored the interactive demo into an English-language interface
+- improved human-readable explanations for hazard, weather, sensor, and evacuation results
+- clarified modeling assumptions and limitations throughout the UI
+- reorganized the project toward reproducible experimentation and deployment
 
 ---
 
-## 1. 문제와 접근
+# 1. Problem
 
-반도체 건설현장에서 화재·가스 누출이 발생하면 최단 거리가 항상 가장 안전한 대피 경로는 아니다. 연기 확산 방향, 유독가스, 통로 폐쇄가 실시간으로 바뀌기 때문이다. 동시에, 위험을 감지할 센서를 **어디에 설치하느냐**가 이 판단의 정보 품질을 결정한다.
+During a fire, gas leak, or smoke event, the **closest evacuation route is not always the safest route**.
 
-이 프로젝트는 두 문제를 하나의 위험 인자로 연결한다.
+Risk can depend on:
 
+- hazard location and intensity
+- smoke or gas dispersion
+- wind direction and speed
+- unavailable exits
+- corridor congestion
+- sensor coverage
+- worker location
+
+At the same time, emergency decisions depend on the quality of available observations.
+
+This creates two connected optimization problems:
+
+1. **Where should a limited number of sensors be installed?**
+2. **Which evacuation routes should be selected under changing risk conditions?**
+
+Quantum SafeON formulates these as binary combinatorial optimization problems that can be evaluated using both classical methods and QAOA.
+
+---
+
+# 2. System Architecture
+
+```mermaid
+flowchart TD
+    A[Floor Plan / Sensor Candidates] --> D[Risk Model]
+    B[Hazard Sources] --> D
+    C[Weather Conditions] --> D
+
+    D --> E[Zone Risk Scores]
+
+    E --> F[Sensor Placement QUBO]
+    E --> G[Evacuation Routing Model]
+
+    F --> H[Exact Classical Solver]
+    F --> I[QAOA Statevector Solver]
+
+    H --> J[Classical Baseline]
+    I --> K[QAOA State Distribution]
+
+    K --> L[Bitstring → Sensor Mapping]
+    J --> M[Interactive Floor-Plan UI]
+    L --> M
+
+    G --> N[Risk-Aware Routes]
+    N --> M
 ```
-[파트 1]  도면 이미지 ──ML──> 구역·문 인식 ──> 구역 그래프
-                              + 기상(풍향·풍속) + 법규 + 사고사례
-                                        ↓
-                         위험 인자  r_z (구역) ·  w_e (통로)
-                              ↙                        ↘
-[파트 2-A] 센서 배치 QUBO              [파트 2-B] 대피 경로 QUBO
- 위험가중 커버리지 − 비용 − 중복          대피시간 + 위험노출 + 혼잡도
-                     ↘                        ↙
-              결합 A: 센서 커버리지 = 위험 관측 신뢰도
-                     → 미커버 구역은 보수적 가중으로 대피 계산
+
+The current public demo uses a **CubiCasa5K residential floor plan** as an interactive visualization example. It is not presented as a real semiconductor or construction-site floor plan.
+
+---
+
+# 3. Mathematical Formulation
+
+## 3.1 Binary Sensor Decisions
+
+For each candidate sensor location \(i\):
+
+$$
+x_i \in \{0,1\}
+$$
+
+where
+
+- \(x_i = 1\): install a sensor at candidate \(i\)
+- \(x_i = 0\): do not install a sensor
+
+For \(N\) candidates, a solution is represented as a binary vector:
+
+$$
+x = (x_1, x_2, \dots, x_N)
+$$
+
+For example:
+
+```text
+110100101010
 ```
 
-**역할 분리 원칙(멘토링 반영)**: ML은 위험 **점수 산출**까지만, 최종 **조합 최적화는 QAOA**가 담당한다. ML이 후보를 미리 잘라내면 양자의 역할이 사라지므로 후보 12개를 그대로 양자에 넘긴다.
+represents one sensor-placement state over 12 candidate locations.
 
 ---
 
-## 2. 지금까지 무엇이 되어 있는가
+## 3.2 Sensor-Budget Constraint
 
-워크플로우 Phase 기준 진행 상황이다.
+If exactly \(K\) sensors should be installed, the constraint can be encoded as a quadratic penalty:
 
-| Phase | 내용 | 상태 |
-|---|---|---|
-| 1 | QUBO 정식화 (변수 12개, 목적·제약 확정) | **완료** — 센서 배치·대피 경로 두 문제 모두 |
-| 2 | 데이터·위험 네트워크 구성 (레이아웃, 위험 점수, 기상·법규·사고 근거) | **완료** |
-| 3-1 | Ideal Simulator QAOA (p=1, p=2) + Exact 정합성 검증 | **완료** |
-| 3-2 | Noisy Simulator | **보류** — IonQ 공개 파라미터는 확보(`Data/05_ionq_noise`), 멘토 지적대로 부정확한 노이즈 모델은 만들지 않음 |
-| 3-3 | Real QPU 실행 | **부분** — IonQ 클라우드 연결·transpile 지표·`ionq_simulator` 실행까지 완료. 실제 `ionq_qpu` 실행은 대회 제공 크레딧 대기 |
-| 4 | 베이스라인 4종 + 도메인 베이스라인 2종 | **완료** |
-| 5 | 교차 플랫폼 | **부분** — 로컬 시뮬레이터 + IonQ 클라우드 2종. Braket 미착수 |
-| 6 | 결과 분석·오류 분석 | **진행 중** — 근사비·최적해 확률·회로 지표 확보, 노이즈 요인 분해 남음 |
-| 7 | 발표 준비 | **미착수** |
+$$
+P_K(x)
+=
+\left(
+\sum_{i=1}^{N} x_i - K
+\right)^2
+$$
 
-추가로 완료된 것: 웹 UI 테스트본(`src/ui/`, v0.4 — 다중 재해 시나리오·출구 입력·위치별 대피 경로 서술·통로 혼잡 분석), CubiCasa5K·Structured3D 도면 인테이크 파이프라인, 기상청 **실측 시계열 정본** 연동, 기상 감도 32격자 재실험, 재해·기상·대피 해설 계층(`src/hazard_explain.py`)과 회귀 테스트(`tests/`).
-
-**아직 안 된 핵심 2가지**: ① 도면→구역 자동 인식 ML 모듈(P1-2, 라벨 데이터는 준비됨) ② 실제 QPU 실행.
+This penalty is minimized when exactly \(K\) sensor candidates are selected.
 
 ---
 
-## 3. 핵심 결과 5가지
+## 3.3 Coverage Representation
 
-### (1) 센서 배치 QUBO — QAOA가 최적해를 찾는다
+Let:
 
-변수 12개, 센서 수 K=6, hard 커버율 임계값 τ=0.27. 감지 반경 가정 3종(low/nominal/high)에서 실행.
+- \(r_z\) = modeled risk weight of zone \(z\)
+- \(a_{zi} \in [0,1]\) = fractional coverage of zone \(z\) by sensor candidate \(i\)
 
-| 반경 | Exact 최적 배치 | 가중 커버율 | 비용(원) | QAOA p=1 최적해 발견 | p=2 |
-|---|---|---|---|---|---|
-| low | C04·C05·C07·C08·C09·C10 | 0.197 | 6,166,748 | O | O |
-| nominal | C03·C04·C05·C08·C09·C10 | 0.510 | 7,216,748 | O | O |
-| high | C03·C04·C05·C08·C09·C10 | 0.682 | 7,216,748 | **X** | O |
-
-- 베이스라인 4종(Exact·Greedy·SA·Random)과 QAOA가 모두 동일 최적해에 도달 → **QUBO 정식화 자체가 정합적**임을 확인.
-- high 시나리오에서 p=1은 최적해를 못 찾고 p=2는 찾는다. **이것을 숨기지 않고 오류 분석 소재로 보고한다** (p=1 표현력 한계). 기상 반영 전 결과에서도 동일하게 재현된다.
-- 근사비 0.877~0.921, 최적해 확률은 균등 샘플링 대비 1.8~16.6배 증폭.
-
-산출: `results/experiment_results.json`, `results/실험결과_요약.md`
-
-### (2) ★ 혼잡 이차항 교차점 — 양자가 필요해지는 지점을 수치로 찾았다
-
-대피 경로 QUBO(변수 12 = 작업조 4 × 후보경로 3)에서 현장 인원을 늘려가며 "각 작업조가 자기 최단경로로 가는 고전적 분해"가 전체 최적인지 확인했다.
-
-| 총 인원 | 독립 최단경로 = 전체 최적? | 손해(인·초) | makespan |
-|---|---|---|---|
-| 24 · 60 · 120 · 200명 | **예** | 0 | 동일 |
-| **320명** | **아니오** | **+498.85** | 384.2s → **312.9s** |
-| 480명 | 아니오 | +5,534.60 | 384.2s → 369.7s |
-
-320명 구간부터 최적해는 W4 작업조를 좁은 비상구(0.9 m)에서 넓은 하역장 출입구(3.0 m 가정)로 우회시킨다. 위험 노출도 37,136 → 28,938으로 감소한다.
-
-**이것이 이 프로젝트의 양자 정당성 근거다.** 혼잡이 이차항으로 들어오는 순간 문제는 분해 불가능해지고, 조합 최적화가 필요해진다. 동시에 **임계 이하 규모에서는 고전으로 충분하다는 사실도 같은 표에 그대로 보고한다**(과장 방지).
-
-산출: `results/evacuation_results.json`, `results/대피실험_요약.md`
-
-### (3) 결합 A — 센서와 대피가 하나의 위험 인자를 공유한다
-
-센서 배치 QUBO의 최적해에서 구역별 커버율을 얻고, 대피 QUBO의 위험 가중치를 `r_eff = r × (1 + 0.3·(1−커버율))`로 상향한다. 즉 **센서가 보지 못하는 구역은 보수적으로 위험하다고 가정**한다. 24명 데모에서 위험 노출이 257.15 → 306.8로 상승하며 미관측 구역이 경로 선택에 실제로 반영되는 것을 확인했다.
-
-### (4) IonQ 클라우드 실행 — 회로 지표와 실행 결과 확보
-
-| 항목 | 값 |
-|---|---|
-| 사용 가능 백엔드 | `ionq_simulator`, `ionq_qpu` |
-| Transpile 후 큐비트 | 29 |
-| Circuit Depth | 25 |
-| 2-Qubit Gate(rzz) | 66 |
-| optimization_level | 3 |
-
-`ionq_simulator` 실행 결과: nominal p=1은 최적해 발견(P(최적)=0.000977, 균등 대비 4.0배), p=2는 미발견. 로컬 Ideal 결과와의 차이를 그대로 기록해 오류 분석 근거로 쓴다.
-
-산출: `results/ionq_connect_test.json`, `results/qpu_results.json`, `results/QPU실험_요약.md`
-
-### (5) 기상 실측 연동과 32격자 감도 — 배치는 강풍에서만 흔들린다
-
-기상청 API허브 지상관측을 연동했다(인증키는 `.env`의 `KMA_API_KEY`에서만 읽고 어떤 파일에도 기록하지 않는다).
-
-풍향 8방위 × 풍속 4단계(0/3/6/10 m/s) = 32격자에서 위험 점수를 재계산하고 매번 QUBO를 다시 풀었다.
-
-- **30/32 격자에서 최적 배치가 무풍 기준과 동일**하고, 바뀌는 경우도 교체 센서는 1개뿐이다.
-- 배치가 바뀌는 것은 **강풍 10 m/s에서만** 발생한다(남동풍 C03→C07, 북서풍 C03→C12).
-- 동일 배치의 가중 커버율은 남·남서 강풍에서 최저 0.4618, 북동·동 강풍에서 최고 0.5208.
-- **hard 제약 τ=0.27은 32격자 전부 충족** → τ 하향 결정이 기상 변화에 견고함을 확인.
-
-산출: `results/weather_sensitivity.json`, `results/기상감도_요약.md`
-
-> 이 32격자는 **관측이 아니라 가정 시나리오**다. 실측 시계열(아래 (6))은 이 가정 격자 안에서 어느 지점에 해당하는지를 확인하는 용도로 함께 쓴다.
-
-### (6) 기상 실측 시계열 정본 + 재해·대피 해설 계층 (2026-07-27 추가)
-
-**실측 정본**: 기상청 API허브 시간자료·일자료 기간조회가 정상화되어 관측소 108의 시간자료 25행(2026-07-26 00시~07-27 00시)과 일자료 7행을 확보했다. 합성·보간·결측 대체는 하지 않았다.
-
-| 항목 | 값 |
-|---|---|
-| 대표 풍속 (90퍼센타일, 보수적 설계값) | **3.8 m/s** |
-| 평균 / 최대 풍속 | 2.54 / 4.3 m/s |
-| 최다 풍향 (16방위 최빈 구간 중앙값) | **33.8°** (북동) → 연기 이동 방향 남서 |
-
-이 대표값으로 센서 배치·대피 경로·기상 감도 3종을 재실행했고 **최적 배치는 종전과 동일**했다. 즉 현재 관측된 약풍 구간에서는 해가 기상 가정에 과민하지 않다. 단 이는 약풍 조건에 한정된 진술이며, 32격자 감도에서 확인한 대로 **강풍 10 m/s에서는 배치가 바뀐다**.
-
-산출: `Data/13_weather_timeseries_20260727/KMA_wind_timeseries.xlsx`, `Data/06_weather/kma_wind_timeseries.csv`
-
-**해설 계층**: 계산 결과에 "왜 그런가"를 붙였다(`src/hazard_explain.py`). 발표에서 그대로 인용할 수 있는 한국어 문장을 코드가 생성한다.
-
-- **풍향·풍속**: "풍향 33.8° → 북동에서 불어옴 → 연기·가스는 남서로 이동", 풍하측 구역 최대 가중 +13%(= 0.35 × 3.8/10)를 수치로 제시
-- **재해**: 발생원별 반경 안 최대 가중과 반경 밖 (R/거리)² 감쇠, 다중 발생원은 지배 발생원 최대값 사용(중첩 과대평가 방지)
-- **센서 ↔ 재해**: 담당 발생원까지 거리, 발생원 영향권의 몇 %를 커버하는지(초기 감지 기여), 센서 자신이 피해 범위인지, 풍하/풍상 우선순위
-- **대피 경로**: 출구는 **입력값**. 경로 비용은 거리가 아니라 `Σ 구간거리 × (1 + 2×위험도)`이므로 *가까운 문*이 아니라 *위험을 덜 지나며 빠른 문*을 고르고, 그 근거(후보 출구별 비용 비교, 최단거리 방식과의 차이, 법정 보행거리 30 m 초과 여부, 발생원 최근접 거리)를 함께 낸다
-- **통로 혼잡**: 여러 출발 위치가 같은 구간을 지나면 인원 ÷ 통로 용량(유효폭 0.9 m × 1.3 인/(m·s) = 1.17 인/s)으로 통과 시간을 계산. 예: 출구 1곳에 작업조 3개(72명)를 몰면 한 구간 통과 61.5초 = 자유 통행 6.3초 대비 **55.2초 지연**. 다른 출구로 돌리는 분산 대안도 제시한다
-
-이 혼잡 계산은 (2)의 320명 교차점과 같은 논리를 UI 수준에서 보여주는 것이며, **정식 배정 최적화는 대피 QUBO의 혼잡 이차항**이 담당한다.
+The interactive optimization uses a quadratic surrogate for coverage so that the objective remains a QUBO.
 
 ---
 
-## 4. 실행 방법
+## 3.4 Interactive Demo QUBO
 
-### 4-1. 환경 준비
+The current web demo uses the following objective:
+
+$$
+H_{\mathrm{demo}}(x)
+=
+-\sum_z r_z \sum_i a_{zi}x_i
++
+\rho
+\sum_z r_z
+\sum_{i<j}
+a_{zi}a_{zj}x_ix_j
++
+\lambda_K
+\left(
+\sum_i x_i-K
+\right)^2
+$$
+
+with current defaults:
+
+$$
+\rho = 0.35,
+\qquad
+\lambda_K = 2.0
+$$
+
+The three terms have distinct roles:
+
+1. **Coverage reward**
+
+$$
+-\sum_z r_z \sum_i a_{zi}x_i
+$$
+
+rewards sensors that cover higher-risk zones.
+
+2. **Redundant-coverage penalty**
+
+$$
+\rho
+\sum_z r_z
+\sum_{i<j}
+a_{zi}a_{zj}x_ix_j
+$$
+
+penalizes pairs of sensors whose coverage overlaps strongly in the same risk-weighted zones.
+
+3. **Sensor-budget penalty**
+
+$$
+\lambda_K
+\left(
+\sum_i x_i-K
+\right)^2
+$$
+
+encourages the solution to select exactly \(K\) sensors.
+
+The interactive demo deliberately omits installation cost and some domain-specific constraints to keep the live optimization lightweight and interpretable.
+
+---
+
+## 3.5 Full Experimental QUBO
+
+The original experimental pipeline uses a richer formulation.
+
+Conceptually:
+
+$$
+H_{\mathrm{full}}(x)
+=
+H_{\mathrm{coverage}}
++
+H_{\mathrm{cost}}
++
+H_K
++
+H_{\mathrm{required}}
+$$
+
+### Risk-weighted coverage and overlap
+
+$$
+H_{\mathrm{coverage}}
+=
+-\sum_z r_z\sum_i a_{zi}x_i
++
+\sum_z r_z
+\sum_{i<j}
+a_{zi}a_{zj}x_ix_j
+$$
+
+The first term rewards coverage, while the quadratic term discourages redundant placement.
+
+### Installation cost
+
+Candidate installation cost is normalized by the maximum candidate cost:
+
+$$
+H_{\mathrm{cost}}
+=
+w_{\mathrm{cost}}
+\sum_i
+\frac{c_i}{c_{\max}}
+x_i
+$$
+
+with the experimental default:
+
+$$
+w_{\mathrm{cost}} = 0.35
+$$
+
+### Sensor-count constraint
+
+$$
+H_K
+=
+\lambda_K
+\left(
+\sum_i x_i-K
+\right)^2
+$$
+
+If \(\lambda_K\) is not explicitly provided, the implementation scales it from the largest absolute linear QUBO coefficient.
+
+### Required-zone coverage
+
+For zones designated as required-coverage zones, the implementation adds an additional penalty.
+
+For one valid covering sensor:
+
+$$
+H_z
+=
+\lambda_H(1-x_i)
+$$
+
+For two valid covering sensors:
+
+$$
+H_z
+=
+\lambda_H(1-x_i)(1-x_j)
+$$
+
+For three or more valid candidates, the full product would introduce higher-order terms. Because the solver pipeline expects a QUBO, the implementation uses a **quadratic truncation** rather than representing the higher-order polynomial exactly.
+
+This approximation is explicitly recorded by the experimental pipeline instead of being treated as an exact hard constraint.
+
+---
+
+## 3.6 QUBO Surrogate vs. Evaluation Metric
+
+The quadratic objective is used for optimization, but the selected configuration is evaluated using a nonlinear union-coverage metric.
+
+For each zone:
+
+$$
+c_z(x)
+=
+1-
+\prod_i
+\left(
+1-a_{zi}x_i
+\right)
+$$
+
+The overall risk-weighted coverage is then:
+
+$$
+C_{\mathrm{true}}(x)
+=
+\frac{
+\sum_z r_z c_z(x)
+}{
+\sum_z r_z
+}
+$$
+
+This distinction is important:
+
+> The QUBO uses a quadratic surrogate that can be optimized by QAOA and classical QUBO solvers, while the resulting sensor configuration is evaluated afterward using the nonlinear union-coverage metric.
+
+This allows optimization to remain quadratic without pretending that overlapping sensor coverage is exactly linear.
+
+---
+
+# 4. QUBO → Ising → QAOA
+
+A QUBO problem can be mapped to an Ising Hamiltonian using the binary-to-spin relation:
+
+$$
+x_i = \frac{1-z_i}{2}
+$$
+
+The resulting cost Hamiltonian can be written in the form:
+
+$$
+H_C
+=
+\sum_i h_i Z_i
++
+\sum_{i<j} J_{ij} Z_i Z_j
+$$
+
+QAOA prepares a parameterized quantum state:
+
+$$
+|\psi(\boldsymbol{\gamma},\boldsymbol{\beta})\rangle
+=
+\prod_{l=1}^{p}
+e^{-i\beta_l H_M}
+e^{-i\gamma_l H_C}
+|+\rangle^{\otimes N}
+$$
+
+where \(H_M\) is the mixer Hamiltonian.
+
+The final state can be expressed as:
+
+$$
+|\psi\rangle
+=
+\sum_x \alpha_x |x\rangle
+$$
+
+and each computational-basis state has probability
+
+$$
+P(x) = |\alpha_x|^2
+$$
+
+---
+
+# 5. QAOA State Distribution
+
+One of my independent extensions was making the QAOA result **interpretable inside the application**.
+
+Instead of displaying only a final objective value, the system extracts the most probable computational-basis states from the optimized statevector.
+
+For each state, the UI displays:
+
+- rank
+- bitstring
+- probability
+- selected sensors
+- QUBO energy
+
+Example:
+
+```text
+Bitstring
+110100101010
+
+Selected Sensors
+S1, S2, S4, S7, S9, S11
+```
+
+When the user hovers over a QAOA state, the corresponding sensor candidates are highlighted directly on the floor plan.
+
+This creates an explicit mapping:
+
+```text
+QAOA Statevector
+       ↓
+Probability P(x)
+       ↓
+Binary State
+110100101010
+       ↓
+Selected Sensors
+S1 S2 S4 S7 S9 S11
+       ↓
+Interactive Floor Plan
+```
+
+This visualization is intended to make the relationship between **quantum state probabilities and actual optimization decisions** easier to inspect.
+
+---
+
+# 6. Classical Baselines vs. QAOA
+
+The original experiments compared QAOA against classical optimization methods including:
+
+- Exact enumeration
+- Greedy search
+- Simulated Annealing
+- Random baseline
+
+For the 12-variable sensor-placement problem with \(K=6\):
+
+| Detection Radius | Exact Weighted Coverage | QAOA p=1 | QAOA p=2 |
+|---|---:|:---:|:---:|
+| Low | 0.197 | Optimal state found | Optimal state found |
+| Nominal | 0.510 | Optimal state found | Optimal state found |
+| High | 0.682 | Not found | Optimal state found |
+
+The p=1 failure in the high-radius case is intentionally retained rather than hidden.
+
+This project **does not claim quantum advantage**.
+
+For the current small problem size, exact classical optimization remains computationally feasible and serves as the reference baseline.
+
+---
+
+# 7. Evacuation Optimization & Congestion
+
+Evacuation routing uses a risk-aware objective rather than distance alone.
+
+A simplified route cost is:
+
+$$
+C_{\text{route}}
+=
+\sum_e
+d_e
+\left(
+1 + \lambda_r r_e
+\right)
++
+C_{\text{congestion}}
+$$
+
+where:
+
+- \(d_e\) = segment distance
+- \(r_e\) = modeled risk along the segment
+- \(C_{\text{congestion}}\) = penalty for shared evacuation corridors
+
+This means the system can prefer a slightly longer path when it reduces modeled hazard exposure.
+
+---
+
+## Congestion Crossover Experiment
+
+The original evacuation experiment evaluated when independently selecting each worker group's shortest route stops being globally optimal.
+
+| Total Occupancy | Independent Shortest Routes Globally Optimal? | Reported Makespan Change |
+|---:|:---:|---:|
+| 24 | Yes | No difference |
+| 60 | Yes | No difference |
+| 120 | Yes | No difference |
+| 200 | Yes | No difference |
+| **320** | **No** | **384.2 s → 312.9 s** |
+| 480 | No | 384.2 s → 369.7 s |
+
+At higher occupancy, shared-corridor congestion couples decisions between worker groups.
+
+This is important because the optimization can no longer be decomposed into independent shortest-path decisions.
+
+It motivates a **joint combinatorial optimization formulation**, without implying that quantum optimization is required or superior.
+
+---
+
+# 8. Hazard & Weather Modeling
+
+The interactive prototype supports multiple configurable hazard sources:
+
+- Fire
+- Gas Leak
+- Smoke
+
+Each hazard contains:
+
+- position
+- impact radius
+- intensity
+- hazard-type weighting
+
+Outside the configured impact radius, the current demo uses a first-order distance-decay approximation.
+
+When weather observations are available, wind direction and speed can modify modeled downwind risk.
+
+The current approximation is **not CFD** and does not model:
+
+- wall shielding
+- HVAC
+- ceiling height
+- local turbulence
+- detailed gas physics
+
+These limitations are explicitly surfaced in the UI.
+
+---
+
+## Weather Sensitivity Experiment
+
+The original project evaluated:
+
+- 8 wind directions
+- 4 wind-speed levels
+
+for a total of 32 hypothetical weather scenarios.
+
+Reported results showed:
+
+- **30 / 32** scenarios retained the same optimal sensor placement as the no-wind baseline
+- the two changed configurations differed by one sensor
+- placement changes occurred only under the tested **10 m/s strong-wind scenarios**
+- the configured hard coverage threshold remained satisfied across all 32 scenarios
+
+These 32 cases are sensitivity scenarios, not 32 independent weather observations.
+
+---
+
+# 9. Interactive Demo
+
+Run the local application:
+
+```bash
+python src/ui/server.py
+```
+
+Then open:
+
+```text
+http://localhost:8788
+```
+
+The demo includes:
+
+- interactive floor-plan visualization
+- configurable detection radius
+- sensor-candidate placement
+- multiple hazard sources
+- weather adjustment
+- exits and worker locations
+- risk heatmap
+- risk-aware evacuation routes
+- congestion analysis
+- Exact classical optimization
+- ideal-statevector QAOA
+- optional IonQ Cloud Simulator integration
+- QAOA State Distribution
+- interactive state-to-sensor highlighting
+- layer filtering and route inspection
+
+The demo does **not** execute on a physical QPU.
+
+---
+
+# 10. Quantum Backends
+
+### Local
+
+The default QAOA backend is an ideal local statevector simulator.
+
+### IonQ
+
+The project contains integration for the IonQ cloud environment and has been tested with the IonQ simulator workflow.
+
+Physical `ionq_qpu` execution is **not claimed** in this repository.
+
+---
+
+# 11. Run the Experiments
+
+Create an environment:
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate            # Windows  (mac/linux: source .venv/bin/activate)
-pip install -r requirements.txt   # numpy 2.5.1, qiskit 2.5.1, qiskit-ionq 1.1.1
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-API 키가 필요한 기능(기상청·IonQ)은 `.env.example`을 `.env`로 복사한 뒤 값을 채운다. **`.env`는 커밋되지 않는다.**
-
-```
-KMA_API_KEY=<기상청 API허브 인증키>
-IONQ_API_KEY=<IonQ API 키>
-```
-
-### 4-2. 핵심 실험 3개 (모두 로컬, API 키 불필요)
+### Sensor-placement experiment
 
 ```bash
-# ① 센서 배치: 베이스라인 4종 + QAOA p=1,2 × 반경 3종
 python src/run_experiment.py
-#   → results/experiment_results.json, results/실험결과_요약.md
+```
 
-# ② 대피 경로: 베이스라인 6종 + QAOA + 결합 A + 인원 규모 교차점 스윕
+### Evacuation experiment
+
+```bash
 python src/run_evacuation_experiment.py
-#   → results/evacuation_results.json, results/대피실험_요약.md
+```
 
-# ③ 기상 감도: 풍향 8방위 × 풍속 4단계 = 32격자 재실험
+### Weather sensitivity experiment
+
+```bash
 python src/weather_sensitivity.py
-#   → results/weather_sensitivity.json, results/기상감도_요약.md
 ```
 
-### 4-3. 기상 실측 수집 (KMA_API_KEY 필요)
+### Interactive demo
 
 ```bash
-# 최신 1시각 관측 캐시
-python src/weather_kma.py
-
-# D3 시계열 — 기간조회가 403이면 승인된 단일시각 조회 반복으로 자동 폴백
-python src/weather_kma.py --range 202607260000 202607270000
-
-# 저장된 시계열의 대표값(풍속 90퍼센타일·최다 풍향) 확인
-python src/weather_kma.py --summary
+python src/ui/server.py
 ```
 
-수집 실패 시 원인이 `Data/06_weather/kma_fetch_diagnosis.json`에 코드로 남는다.
-
-| 원인코드 | 뜻 | 조치 |
-|---|---|---|
-| `EGRESS_BLOCKED` | 실행 환경이 외부 접속을 차단 | 네트워크가 열린 PC에서 실행 |
-| `KMA_HTTP_403` / `401` | 기상청 인증 거부 | 키 확인 + "지상관측 시간자료(기간 조회)" 활용신청 승인 확인 |
-| `EMPTY_RESPONSE` | 응답에 유효 관측 없음 | 기간·지점번호 확인 |
-
-파이프라인은 **시계열 대표값 > 단일시각 캐시 > 미반영(None)** 순으로 기상을 반영한다. 관측값을 합성하거나 보간하지 않는다.
-
-### 4-4. IonQ 클라우드 실행 (IONQ_API_KEY 필요)
-
-```bash
-python src/ionq_connect_test.py     # 연결·백엔드·transpile 지표 확인
-python src/run_qpu_experiment.py    # 기본 백엔드는 ionq_simulator
-```
-
-### 4-5. 웹 UI 테스트본 (v0.4)
-
-```bash
-python src/ui/server.py    # → http://localhost:8788
-```
-
-접속하면 데모 도면(CubiCasa5K plan 5570)과 센서 후보가 자동 로드되어 바로 시연할 수 있다. 사용 흐름:
-
-1. **도면**: 업로드하거나 기본 데모 도면 사용 (PNG/JPG. CAD/BIM은 안내 후 변환 요청)
-2. **센서 배치**: 도면 클릭으로 후보점 추가, 반경은 시나리오(3/5/8 m) 또는 수동
-3. **재해 시나리오**: 화재·가스누출·연기를 **여러 건 동시에** 추가(클릭으로 위치 지정·이동). 프리셋은 `config/fire_scenarios.json`
-4. **기상**: 관측 대표값(풍향·풍속)과 그 의미를 패널에 표시. 체크박스로 보정 on/off
-5. **대피 출구·작업자 위치**: 출구를 이름·좌표로 입력하거나 클릭 지정(미입력 시 격자 모서리로 **가정**). 작업자 위치·인원을 넣으면 그 지점 기준, 없으면 전 구역에서 출발하는 경로를 계산
-6. **최적화 실행**: QUBO + QAOA(로컬 Ideal 또는 IonQ 클라우드 시뮬레이터) → 선택 센서, 센서별 선택/제외 근거와 재해 감지 기여, 출발 위치별 대피 경로 표와 근거, 통로 공유 지연
-7. **레이어 정리**: 도면 위 레이어 13종(도면·구역 격자·위험 히트맵·취약 구역·풍하측·센서 커버리지 원·센서·재해 발생원·풍향 화살표·대피 경로·출구·작업자 위치·라벨)을 체크박스로 켜고 끈다. `전체 켜기 / 대피만 보기 / 센서만 보기` 프리셋과 경로 필터(또는 결과 표의 행 클릭)로 한 경로만 강조할 수 있다. 커버리지 원은 겹침이 심해 **기본 off**다
-
-실기 QPU는 이 서버에서 호출하지 않는다(비용 경로 차단). API 응답: `GET /weather`, `GET /fire_presets`, `GET /demo_layout`, `POST /optimize`.
-
-### 4-6. 회귀 테스트
-
-```bash
-python tests/test_hazard_explain.py   # 27건 — 기상 해설·재해 위험도·센서 감지 기여·대피 경로·혼잡
-python tests/test_weather_kma.py      # 3건 — 기상청 응답 헤더 파서(번호형·단일행·헤더 부재 거부)
-node   tests/test_ui_layers.mjs       # UI 레이어 토글·경로 필터 (최소 DOM 셰임에서 draw() 실행)
-```
-
-### 4-7. 도면 인테이크 (원본 데이터셋 별도 준비 필요)
-
-```bash
-python src/cubicasa5k_ingest.py      # CubiCasa5K 평면도 → 구역 그래프
-python src/structured3d_ingest.py    # Structured3D → 구역 그래프 (2차 도메인 검증)
-python src/verify_cubicasa5k_e2e.py  # 인테이크 → QUBO 전 구간 검증
-```
-
-원본 데이터셋은 라이선스·용량 문제로 저장소에 포함하지 않는다. `NOTICE_DATA.md` 참조.
+Optional API-backed functionality uses environment variables rather than committed credentials.
 
 ---
 
-## 5. 저장소 구조
+# 12. Repository Structure
 
-```
-src/
-  ├─ 위험 인자
-  │   risk_model.py           구역 위험 점수 r_z, 통로 위험 w_e, 풍속·풍향 보정
-  │   zone_graph.py           구역 그래프(길이·폭·유효폭·용량), 출구 다양성 k-최단 경로
-  │   evacuation_evidence.py  법규·보행유동·가스물성 정본 상수 로더
-  │   fire_scenario.py        재해 발생원(화재·가스누출·연기) 위치·반경·세기, 센서 연동 인터페이스
-  │   hazard_explain.py       기상·재해·센서 영향값·대피 경로(출구 입력·혼잡) 한국어 해설 생성
-  ├─ QUBO 정식화
-  │   qubo.py                 센서 배치 QUBO (변수 12)
-  │   evacuation_qubo.py      대피 경로 QUBO (변수 12 = 작업조 4 × 경로 3)
-  ├─ 솔버
-  │   baselines.py            Exact(brute-force) · Greedy · SA · Random
-  │   qaoa_sim.py             로컬 Ideal Simulator QAOA
-  │   qaoa_qiskit.py          Qiskit 회로 구성
-  ├─ 실험 진입점
-  │   run_experiment.py            센서 배치 (반경 3종)
-  │   run_evacuation_experiment.py 대피 경로 + 결합 A + 교차점 스윕
-  │   weather_sensitivity.py       기상 32격자 감도
-  │   run_qpu_experiment.py        IonQ 클라우드
-  │   ionq_connect_test.py         연결·transpile 지표
-  ├─ 데이터 인테이크
-  │   data_loader.py          Data/ CSV 로더 (레이아웃·후보·커버리지·비용·사고)
-  │   weather_kma.py          기상청 관측·시계열·대표값·오류 진단
-  │   cubicasa5k_ingest.py / structured3d_ingest.py / verify_cubicasa5k_e2e.py
-  │   env_loader.py           .env → 환경변수 (의존성 없음)
-  └─ ui/  index.html, server.py   웹 테스트본 v0.4 (localhost:8788)
-
-config/    fire_scenarios.json  재해 시나리오 프리셋·UI 기본값
-tests/     test_hazard_explain.py(27건), test_weather_kma.py(3건), test_ui_layers.mjs(UI 레이어)
-results/   실험 산출물 (JSON 원본 + 한국어 요약 MD)
-Data/      01~07·12·13 근거 데이터 (대용량·라이선스 제한 원자료 제외)
-docs/      workflow_sensor.md, workflow_part1_risk.md
-NOTICE_DATA.md   데이터 출처·라이선스·재사용 시 필수 표기 한계
+```text
+Quantum_SafeON/
+│
+├── src/
+│   ├── qaoa_sim.py
+│   ├── hazard_explain.py
+│   ├── fire_scenario.py
+│   ├── weather_kma.py
+│   ├── weather_sensitivity.py
+│   ├── run_experiment.py
+│   ├── run_evacuation_experiment.py
+│   │
+│   └── ui/
+│       ├── server.py
+│       └── index.html
+│
+├── config/
+├── Data/
+├── results/
+├── tests/
+└── README.md
 ```
 
 ---
 
-## 6. 데이터 현황
+# 13. Modeling Assumptions & Limitations
 
-| ID | 내용 | 상태 | 경로 |
-|---|---|---|---|
-| P1 | 레이아웃·구역·센서 후보 12개·부분면적 커버리지 행렬 | 확보 | `Data/01_layout/` |
-| P2 | 센서 사양·공개 판매가 | 확보 | `Data/02_sensor_spec_cost/` |
-| P3 | 화재·가스 사고 조사 사례 | 확보(소표본) | `Data/03_incident_scenarios/` |
-| P4 | 감지기 설치 법적 기준 | 확보 | `Data/04_legal_criteria/` |
-| P5 | IonQ Aria/Forte 오류율·T1/T2 | 확보 | `Data/05_ionq_noise/` |
-| D1 | 대피 관련 법규 | 확보 | `Data/12_evacuation_evidence_20260727/` |
-| D2 | 보행 유동(속도·단위폭 유동률) | 확보 | 동일 |
-| D3 | **기상 풍향·풍속 시계열** | **확보** — 관측소 108 시간자료 25행·일자료 7행(공식 API, 합성·보간 없음). 대표값 33.8°·3.8 m/s | `Data/06_weather/`, `Data/13_weather_timeseries_20260727/` |
-| D4 | 가스 물성 | 확보 | `Data/12_evacuation_evidence_20260727/` |
-| D5 | CubiCasa5K 방·문/창 라벨 (방 61,394건, 문/창 93,893건) | 확보(저장소 미포함) | 프로젝트 내부 `Data/11_ml_labels_20260727/` |
-| D6 | 현장 동시 인원 시나리오 | 확보(합성) | `Data/12_evacuation_evidence_20260727/` |
+Quantum SafeON is a research and portfolio prototype, not a production emergency-management system.
 
-핵심 상수: 보행속도 1.19 m/s, 보행거리 상한 30.0 m, 단위폭 유동률 1.3 persons/(m·s).
+Important limitations include:
+
+- the public demo floor plan is not a real industrial-site floor plan
+- current hazard propagation is a simplified first-order approximation
+- wall geometry and physical obstruction are not fully modeled
+- evacuation routing uses a simplified grid representation
+- congestion uses a first-order corridor-capacity approximation
+- no quantum advantage is claimed
+- no physical QPU execution is claimed
+- current problem sizes remain tractable using classical exact methods
+- the floor-plan-to-zone ML module discussed during the original project was not implemented and is not represented as a completed feature
 
 ---
 
-## 7. QUBO 정식화 요약
+# 14. Project Provenance
 
-**파트 2-A 센서 배치** — 이진 변수 x_j (후보 j에 센서 설치 여부), j = 1..12
+Quantum SafeON originated as a collaborative team project for the **Quantum Reframing Challenge 2026**.
 
-```
-minimize  −Σ_z r_z · 커버율_z  +  λ_cost Σ_j c_j x_j  +  λ_K (Σ_j x_j − K)²  +  λ_hard · (hard 구역 미충족 패널티)
-```
+This repository is maintained as my fork of the original team repository in order to preserve project history and attribution.
 
-- r_z: 구역 위험 점수 (사고사례 특성 가중 + 기상 보정)
-- 커버율: 부분면적 union `1 − Π_j (1 − a_zj x_j)` — QUBO에서는 1차 근사, 평가는 정확식으로 재계산
-- K = 6 (센서 수 제한), τ = 0.27 (hard 구역 최소 커버율, PM 확정)
+The original optimization concept, experimental framework, and system design were developed collaboratively by the team.
 
-**파트 2-B 대피 경로** — 이진 변수 y_{g,k} (작업조 g가 후보경로 k 선택), 4 × 3 = 12
-
-```
-minimize  Σ 이동시간(인·초)  +  λ_risk Σ 위험노출  +  λ_cong Σ_{경로쌍} 공유간선 혼잡(이차항)  +  λ_onehot Σ_g (Σ_k y_{g,k} − 1)²
-```
-
-혼잡항이 **이차항**이라는 점이 핵심이다. 두 작업조가 같은 통로를 쓰면 비용이 곱으로 늘어나므로 작업조별 독립 최적화로 분해되지 않는다.
-
-두 문제 모두 **변수 12개**로 맞춰 `baselines.py`·`qaoa_sim.py`를 그대로 공유한다.
+My post-competition work is maintained as clearly identifiable independent extensions, including the interactive QAOA state-analysis and visualization work described above.
 
 ---
 
-## 8. 해석 원칙과 한계
+# 15. Current Development
 
-**절대 하지 않는 주장**
+Current portfolio-development priorities:
 
-- "양자 이득(quantum advantage)" 주장을 하지 않는다. 근사비·최적해 확률·회로 지표·오류 요인으로만 기술한다.
-- 관측값을 합성하거나 보간하지 않는다. 못 받은 데이터는 "못 받았다"고 기록한다.
-- 고전으로 충분한 구간을 숨기지 않는다. 320명 미만에서 독립 최단경로가 최적이라는 사실을 같은 표에 함께 싣는다.
+- cloud deployment of the interactive demo
+- improved reproducibility and automated testing
+- architecture and demo visualization
+- additional classical-vs-QAOA analysis
 
-**명시하는 한계 (발표·기획서에 그대로 포함)**
-
-- 레이아웃·센서 후보점·작업자 배치는 **합성**이며 실제 도면·실측이 아니다.
-- 감지 반경 3/5/8 m는 **민감도 분석용 가정**이지 제품 보증 성능이나 법정 기준이 아니다.
-- 커버리지는 2D 등방 원형 근사로, 벽·천장고·공조를 반영하지 않는다.
-- 풍향 보정은 코사인 방향 가중 1차 근사이며 **CFD 확산 해석이 아니다**.
-- 기상 관측소 지점값(기본 108 서울)을 현장 대표값으로 가정한다.
-- 혼잡은 이차항 1차 근사이며 시간 전개형 인파 시뮬레이션이 아니다.
-- EX2 비상구는 법정 출구 2개소 요건 충족을 위한 **합성 노드**이고, 하역장 개구부 3.0 m는 모델링 가정이다.
-- 사고 사례는 소표본으로, 확률 학습 데이터가 아니라 규칙 기반 위험 점수의 근거로만 쓴다.
-- 비용은 공개 장비가 기준이며 국내 시공비·배선·인증·세금은 `NA`다.
-- UI의 재해 위치·반경·세기는 사람이 지정한 **예시 설정값**이며 실측 감지 센서 신호가 아니다. 실제 센서 연동은 `fire_scenario.SensorFeedProvider` 구현 지점으로 분리해 두었다.
-- UI 대피 경로는 격자 4방향 인접·구역 중심 직선 이동 가정이다. 벽·문·계단·큐 형성·역류를 반영하지 않으며 인파 시뮬레이터가 아니다.
-- **출구를 입력하지 않으면 격자 네 모서리를 출구로 가정**한다(결과에 가정임이 표기된다). 실제 도면 기준 출구 좌표를 넣어야 유효한 결론이 된다.
-- 통로 혼잡은 용량(유효폭 × 단위폭 유동률) 기준 1차 근사이고, 위험 페널티 계수 2.0("거리 1 m ≈ 위험도 1단위의 2배")은 모델링 가정이다.
-- 기상 대표값은 서울 관측소 108의 25시간 자료로, 반도체 건설현장의 국지 기상·건물 난류·현장 센서·CFD를 대표하지 않는다. 관측소·기간을 항상 함께 표기한다.
+Potential future research directions include richer industrial floor-plan modeling and learned risk estimation, but these are not presented as currently implemented features.
 
 ---
 
-## 9. 남은 작업
+## Tech Stack
 
-**Claude (Full-Stack Developer)**
-
-- P1-2 ML 모듈: 도면 → 구역·문 자동 인식 (D5 라벨 61,394건 활용, 규칙 기반 폴백은 이미 배선됨)
-- 실제 QPU 실행 및 Ideal / 클라우드 시뮬레이터 / QPU 3단 비교
-- 노이즈 요인 분해(게이트 에러·디코히런스·샷 노이즈)와 회로 깊이 상관 분석
-- UI 격자와 실제 현장 12구역 그래프(`zone_graph.py`, 출구 EX1·EX2) 연결 — 데모와 파이프라인의 출구를 일치시킴
-- 대피 QUBO 자체의 UI 연동(현재 UI는 단일 그룹 축약이며 혼잡 이차항 미포함)
-
-**PM (Kevin)**
-
-- 실제 도면 기준 **출구 좌표·이름**(정문/후문/비상구) 입력해 1회 확인 — 현재 미입력 시 격자 모서리 가정
-- 작업조별 **동시 인원** 확정 (현재는 D6 합성 시나리오 기준 → 혼잡 지연을 실측 근거로 전환)
-- 위험 페널티 계수 2.0(안전 대 신속 비중) 유지 여부
-- 발표용 대표 재해 시나리오(유형·위치·반경) 지정
-- 기획서 제목·개요 통합 주제 문구 확정 / 320명 교차점을 '양자 최적화 정당성' 핵심 근거로 쓸지 확인
-- 대회 제공 IonQ 크레딧·QPU 실행 조건 확인
-
-**Codex (AI Researcher)**
-
-- 건설현장 임시 통로 폭 규정이 D1/D2에 있으면 출처 제공 → 혼잡 용량 가정(현재 1.2 m)을 규정값으로 교체
-- 발표에서 인용할 화재·가스 확산 반경의 D4 출처 (현재 UI 기본값 6 m, 프리셋 10~15 m는 데모 가정치)
+**Languages:** Python, JavaScript, HTML/CSS
+**Optimization:** QUBO, Exact Search, Greedy, Simulated Annealing, QAOA
+**Quantum:** Qiskit, IonQ integration
+**Scientific Computing:** NumPy
+**Backend:** Python HTTP server
+**Visualization:** HTML Canvas
+**Data / Modeling:** Hazard scenarios, weather observations, evacuation graphs
 
 ---
 
-## 라이선스·출처
+## Status
 
-데이터 출처와 라이선스, 재사용 시 반드시 함께 표기해야 하는 한계는 **[`NOTICE_DATA.md`](NOTICE_DATA.md)** 에 정리했다. CubiCasa5K 데모 평면도 1장은 CC BY-NC 4.0이며 상업적 이용 시 교체가 필요하다. Structured3D 원자료와 그 파생 산출물은 이용약관에 따라 저장소에 포함하지 않는다.
+**Portfolio extension in active development.**
+
+Current interactive implementation:
+
+- QUBO sensor optimization ✅
+- Exact classical baseline ✅
+- QAOA ideal-statevector simulation ✅
+- QAOA state-distribution visualization ✅
+- Interactive state-to-sensor mapping ✅
+- Hazard / weather / evacuation visualization ✅
+- English portfolio UI ✅
+- Physical QPU benchmark ❌
+- Cloud deployment → next
