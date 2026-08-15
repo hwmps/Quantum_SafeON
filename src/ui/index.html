@@ -390,6 +390,25 @@ function renderHz(){
 function pickHz(i){hzSel=i;document.getElementById('clickMode').value='move';
   hzMsg(`${hazards[i].id} selected — click the floor plan to move this hazard.`,'#8ab4f8');renderHz();draw();}
 function delHz(i){hazards.splice(i,1);if(hzSel>=hazards.length)hzSel=Math.max(0,hazards.length-1);renderHz();draw();}
+const PRESET_LABELS={
+  '특수가스_배관실_누출':'Special Gas Piping Room Leak',
+  '화기작업_발화':'Hot Work Ignition',
+  '자재적치장_화재':'Material Storage Fire',
+  '벌크가스_저장_누출':'Bulk Gas Storage Leak',
+  '동시_2개소':'Dual-Hazard Scenario'
+};
+
+const PRESET_DESCRIPTIONS={
+  '특수가스_배관실_누출':'Silane / hydrogen-family gas leak in the Z04 special-gas piping room.',
+  '화기작업_발화':'Ignition caused by welding sparks in the Z06 hot-work area.',
+  '자재적치장_화재':'Combustible-material fire in the Z07 storage area near the main evacuation corridor.',
+  '벌크가스_저장_누출':'Leak in the Z05 bulk gas / chemical storage area, used to test coverage blind spots.',
+  '동시_2개소':'Combined scenario with a Z04 gas leak and a Z07 material fire occurring simultaneously.'
+};
+
+const presetLabel=k=>PRESET_LABELS[k]||k;
+const presetDescription=(k,p)=>PRESET_DESCRIPTIONS[k]||(p&&p.설명)||presetLabel(k);
+
 let firePresets={};
 document.getElementById('firePreset').onchange=e=>{
   const p=firePresets[e.target.value];if(!p||!p.sources||!p.sources.length)return;
@@ -397,7 +416,7 @@ document.getElementById('firePreset').onchange=e=>{
   document.getElementById('hzKind').value=s.kind||'fire';
   document.getElementById('hzR').value=s.radius_m||6;
   document.getElementById('hzI').value=s.intensity!=null?s.intensity:1;
-  hzMsg(`Preset defaults applied: ${p.설명||e.target.value} — click the floor plan to place the hazard`
+  hzMsg(`Preset defaults applied: ${presetDescription(e.target.value,p)} — click the floor plan to place the hazard`
        +(p.sources.length>1?` (This preset contains ${p.sources.length} hazard sources. Change the hazard type and place each source on the floor plan.)`:'')+'.','#8ab4f8');
 };
 (async()=>{ // 서버에서 프리셋 목록 로드 (서버 미실행이면 직접 입력만 사용)
@@ -405,7 +424,7 @@ document.getElementById('firePreset').onchange=e=>{
     const d=await(await fetch(API+'/fire_presets')).json();
     firePresets=d.presets||{};
     const sel=document.getElementById('firePreset');
-    Object.keys(firePresets).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k+(k===d.default?' ★ Default Scenario':'');sel.appendChild(o);});
+    Object.keys(firePresets).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=presetLabel(k)+(k===d.default?' ★ Default Scenario':'');sel.appendChild(o);});
     // UI 기본값 = PM 확정 대표 시나리오의 유형·반경·세기 (위치는 도면 클릭으로 지정)
     const u=d.ui_기본값||{};
     if(u.radius_m)document.getElementById('hzR').value=u.radius_m;
@@ -413,7 +432,7 @@ document.getElementById('firePreset').onchange=e=>{
     if(u.intensity!=null)document.getElementById('hzI').value=u.intensity;
     if(d.default){
       sel.value=d.default;
-      hzMsg(`Default representative scenario applied: ${d.default} (${(firePresets[d.default]||{}).설명||''}) — `
+      hzMsg(`Default representative scenario applied: ${presetLabel(d.default)} (${presetDescription(d.default,firePresets[d.default])}) — `
            +`Type, radius, and intensity are preconfigured. Use Add Hazard Source mode and click the floor plan to place it.`,'#8ab4f8');
     }
   }catch(e){/* 서버 미실행 */}

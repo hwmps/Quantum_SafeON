@@ -477,7 +477,7 @@ def representative_weather():
     s = summarize_timeseries()
     if s:
         return {"wd_deg": s["최다_풍향_deg"], "ws_ms": s["대표_풍속_m_s"],
-                "출처": "D3 관측 시계열 대표값(풍속 90퍼센타일·최다 풍향)",
+                "출처": "D3 representative weather observation (90th-percentile wind speed · most frequent wind direction)",
                 "기간": s["기간"], "stn": s["stn"], "n": s["n"],
                 "평균_풍속_m_s": s["평균_풍속_m_s"], "최대_풍속_m_s": s["최대_풍속_m_s"]}
     w = load_cached_weather()

@@ -29,7 +29,7 @@ import weather_kma
 
 UI_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SRC)
-PORT = 8788
+PORT = int(os.environ.get("PORT", "8788"))
 MAX_N = 14  # 전수조사·statevector 한도 (2^14)
 
 # 기본 데모 도면: CubiCasa5K plan 5570 (REC-008, E2E 검증 완료, residential_public_dataset)
@@ -420,4 +420,4 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(f"Quantum SafeON interactive demo: http://localhost:{PORT}  (Ctrl+C to stop)")
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
