@@ -55,7 +55,7 @@ The system sequentially connects **sensor-placement optimization**, **observatio
 ---
 # My Role & Contributions
 
-Quantum SafeON originated as a collaborative team project for the **Quantum Reframing Challenge 2026**, where I contributed across problem formulation, optimization design, scenario modeling, experimental interpretation, and end-to-end system reasoning.
+Quantum SafeON originated as a collaborative team project for the **Quantum Reframing Challenge 2026**(https://github.com/walkerprocess/Quantum_SafeON), where I contributed across problem formulation, optimization design, scenario modeling, experimental interpretation, and end-to-end system reasoning.
 
 ## Collaborative Research & Optimization Design
 
