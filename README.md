@@ -1,114 +1,338 @@
-# Quantum SafeON
+# SentinelPath
 
-### Risk-Aware Sensor Placement & Evacuation Optimization with QUBO / QAOA
+### Risk-Aware Sensor Placement & Evacuation via Sequentially Coupled QUBOs
 
-Quantum SafeON is an optimization prototype that connects **hazard-aware sensor placement**, **evacuation routing**, **classical optimization baselines**, and **QAOA-based combinatorial optimization** in a single interactive workflow.
+**Exact Classical Validation · QAOA State Analysis · Interactive AWS Deployment**
 
-The system models how hazards, weather conditions, sensor coverage, evacuation routes, and corridor congestion interact — and provides an interactive floor-plan interface for exploring optimization results.
+SentinelPath is a research and software prototype for **hazard-aware sensor placement and evacuation planning** under changing site conditions.
 
-> **Core idea:** sensors determine what parts of a site can be reliably observed, while evacuation decisions depend on the resulting risk landscape.
+The system sequentially connects **sensor-placement optimization**, **observation confidence**, and **congestion-aware evacuation planning**, while using exact classical optimization as a reference baseline and QAOA as an additional combinatorial optimization framework.
 
----
-## Interactive Demo
-http://quantum-safeon-env.eba-d9hutyja.ap-northeast-2.elasticbeanstalk.com/
-
-![Quantum SafeON AWS Demo](docs/images/quantum_safeon_demo_aws_url.gif)
-
-
-## My Role & Contributions
-
-Quantum SafeON was originally developed collaboratively as a team project for the **Quantum Reframing Challenge 2026**.
-
-### Original Team Project
-
-I contributed collaboratively to:
-
-- problem framing for hazard-aware sensor placement and evacuation optimization
-- translating safety requirements into optimization objectives and constraints
-- QUBO/QAOA methodology and experimental design
-- hazard, weather, sensor-coverage, and evacuation scenario modeling
-- interpretation of classical and quantum optimization results
-- system-level reasoning connecting sensor placement with evacuation planning
-- technical documentation and presentation of the end-to-end optimization workflow
-
-### Independent Extensions
-
-After the original team project, I independently extended the prototype as a portfolio-focused software project.
-
-My extensions include:
-
-- implemented extraction and ranking of the most probable **QAOA computational-basis states**
-- built an interactive **QAOA State Distribution** visualization
-- mapped QAOA bitstrings directly to physical sensor candidates on the floor plan
-- implemented hover-based **state-to-sensor highlighting**
-- refactored the interactive demo into an English-language interface
-- improved human-readable explanations for hazard, weather, sensor, and evacuation results
-- clarified modeling assumptions and limitations throughout the UI
-- reorganized the project toward reproducible experimentation and deployment
+> **Core idea:** Optimize what the system can reliably observe, then optimize how people should evacuate under that level of observation confidence.
 
 ---
 
+## Interactive AWS Demo
+
+**Live Demo:** [Launch the AWS-deployed application](http://quantum-safeon-env.eba-d9hutyja.ap-northeast-2.elasticbeanstalk.com/)
+
+<p align="center">
+  <img
+    src="docs/images/quantum_safeon_demo_aws_url.gif"
+    alt="Quantum SafeON Interactive AWS Demo"
+    width="900"
+  >
+</p>
+
+**Demo workflow**
+
+`Floor Plan → Hazard & Weather → Risk Modeling → Sensor QUBO → Observation Confidence → Evacuation Analysis → QAOA State Interpretation`
+
+> The public demo uses a **CubiCasa5K residential floor plan** as a visualization example.  
+> It is not presented as a real semiconductor, construction, or industrial-site floor plan.
+
+---
+
+## Key Results
+
+| Experiment | Result |
+|---|---|
+| Sensor candidates | 12 |
+| Sensor budget | `K = 6` |
+| Exact sensor state space | `2^12 = 4,096` |
+| Feasible six-sensor combinations | `C(12,6) = 924` |
+| Weather sensitivity | Optimal placement retained in `30 / 32` synthetic scenarios |
+| Evacuation crossover | Independent shortest paths stopped being globally optimal at 320 workers in the tested synthetic network |
+| 320-worker makespan | `384.2 s → 312.9 s` |
+| Makespan improvement | `71.3 s` / `18.6%` |
+| Quantum validation | Ideal-statevector QAOA + exact classical reference |
+| Physical QPU | Not executed / not claimed |
+| Cloud deployment | AWS Elastic Beanstalk |
+
+> **This project does not claim quantum advantage.**  
+> At the current problem size, exact classical optimization remains computationally feasible and is used as the reference baseline.
+
+---
+# My Role & Contributions
+
+Quantum SafeON originated as a collaborative team project for the **Quantum Reframing Challenge 2026**, where I contributed across problem formulation, optimization design, scenario modeling, experimental interpretation, and end-to-end system reasoning.
+
+## Collaborative Research & Optimization Design
+
+Within the original team project, I contributed to:
+
+- framing sensor placement and evacuation planning as interconnected combinatorial optimization problems
+- translating safety requirements into QUBO objectives, penalties, and hard constraints
+- designing the QUBO/QAOA methodology and experimental workflow
+- modeling hazard, weather, sensor coverage, and evacuation scenarios
+- analyzing exact, heuristic, and QAOA optimization results
+- designing the sequential coupling between sensor observability and evacuation risk
+- documenting and presenting the end-to-end optimization architecture
+
+## Independent Engineering & System Development
+
+After the competition, I independently transformed the research prototype into a **deployable, interpretable software system** suitable for technical demonstration and portfolio evaluation.
+
+This work included:
+
+- redesigning the prototype into an interactive end-to-end workflow connecting hazard inputs, optimization, validation, and visualization
+- implementing extraction, ranking, and interpretation of **QAOA computational-basis states**
+- building the interactive **QAOA State Distribution** interface
+- translating QAOA bitstrings into physical sensor selections on the floor plan
+- implementing hover-based **state-to-sensor visualization** to connect quantum outputs with real optimization decisions
+- adding exact-optimum comparison logic to distinguish the selected QAOA solution from other high-probability states
+- restructuring the UI to expose assumptions, constraints, failure cases, and optimization results more clearly
+- refactoring the application into an English-language technical demo
+- improving reproducibility and deployment configuration for the Python application
+- configuring and deploying the live application on **AWS Elastic Beanstalk**, including application process configuration, environment variables, nginx port routing, IAM role separation, and EC2-backed runtime settings
+- producing the interactive AWS demo and technical documentation that distinguish implemented features, experimental assumptions, and future work
+
+> The post-competition work was not a separate reimplementation of the original team project. It was an independent engineering phase that converted the collaborative research prototype into a more interpretable, reproducible, and publicly deployable system.
+
+---
 # 1. Problem
 
-During a fire, gas leak, or smoke event, the **closest evacuation route is not always the safest route**.
+Emergency planning is not a static shortest-path problem.
 
-Risk can depend on:
+In a changing work site, factors such as:
 
-- hazard location and intensity
-- smoke or gas dispersion
+- hazard location
+- temporary structures
+- worker distribution
+- sensor availability
+- exit availability
 - wind direction and speed
-- unavailable exits
+- smoke or gas dispersion
 - corridor congestion
-- sensor coverage
-- worker location
 
-At the same time, emergency decisions depend on the quality of available observations.
+can all change the safest decision.
 
-This creates two connected optimization problems:
+At the same time, emergency routing depends on the quality of the information available to the system.
+
+This creates two connected optimization questions:
 
 1. **Where should a limited number of sensors be installed?**
-2. **Which evacuation routes should be selected under changing risk conditions?**
+2. **Which evacuation routes should be selected under the resulting risk and observation conditions?**
 
-Quantum SafeON formulates these as binary combinatorial optimization problems that can be evaluated using both classical methods and QAOA.
+The objective is therefore not to install as many sensors as possible.
+
+It is to allocate a limited sensor budget so that **high-risk areas are observed effectively**, and then incorporate that observation confidence into evacuation planning.
 
 ---
 
 # 2. System Architecture
 
-```mermaid
-flowchart TD
-    A[Floor Plan / Sensor Candidates] --> D[Risk Model]
-    B[Hazard Sources] --> D
-    C[Weather Conditions] --> D
+SentinelPath separates the problem into two optimization stages connected by an explicit **observation-confidence interface**.
 
-    D --> E[Zone Risk Scores]
-
-    E --> F[Sensor Placement QUBO]
-    E --> G[Evacuation Routing Model]
-
-    F --> H[Exact Classical Solver]
-    F --> I[QAOA Statevector Solver]
-
-    H --> J[Classical Baseline]
-    I --> K[QAOA State Distribution]
-
-    K --> L[Bitstring → Sensor Mapping]
-    J --> M[Interactive Floor-Plan UI]
-    L --> M
-
-    G --> N[Risk-Aware Routes]
-    N --> M
-```
-
-The current public demo uses a **CubiCasa5K residential floor plan** as an interactive visualization example. It is not presented as a real semiconductor or construction-site floor plan.
+<p align="center">
+  <img
+    src="docs/images/sentinelpath_system_architecture.png"
+    alt="SentinelPath System Architecture"
+    width="900"
+  >
+</p>
 
 ---
 
-# 3. Mathematical Formulation
+# 3. Why Two QUBOs Instead of One?
 
-## 3.1 Binary Sensor Decisions
+A key design decision was **not to combine sensor placement and evacuation into one monolithic QUBO**.
 
-For each candidate sensor location `i`, define a binary decision variable:
+Instead:
+
+```text
+Sensor QUBO
+    ↓
+selected sensor configuration x*
+    ↓
+observation confidence
+    ↓
+conservative route-risk adjustment
+    ↓
+Evacuation Optimization
+```
+
+This preserves an explicit causal interface between the two stages.
+
+## Why not fully merge them?
+
+A fully integrated formulation would:
+
+- increase the number of binary variables
+- introduce many additional pairwise interactions
+- make the optimization harder to debug
+- make it harder to explain why a sensor decision changed a route
+- reduce modular verification
+
+For 24 binary variables, a fully connected formulation can contain up to:
+
+```text
+C(24,2) = 276
+```
+
+pairwise couplings.
+
+The sequential architecture instead keeps the relationship interpretable:
+
+> **Sensor placement determines observation confidence; observation confidence modifies route risk; route risk changes evacuation decisions.**
+
+---
+
+# 4. End-to-End Synthetic Case Study: Gas Leak
+
+A synthetic gas-leak scenario was used to trace one event through the complete pipeline.
+
+## Step 1 — Configure the hazard
+
+Representative scenario inputs included:
+
+```text
+Hazard: Gas Leak
+Wind direction: 33.8°
+Wind speed: 3.8 m/s
+Modeled impact radius: 12 m
+```
+
+The `12 m` impact radius is a **demonstration assumption**, not a universal or legally defined safety distance.
+
+---
+
+## Step 2 — Recompute zone risk
+
+The risk layer assigns zone-level scores using scenario configuration, location, and weather-related adjustments.
+
+Example values from the synthetic experiment included:
+
+```text
+Z04 = 1.00
+Z05 = 0.86
+Z09 = 0.50
+Z06 = 0.10
+```
+
+The system is **not presented as an AI model that predicts industrial accidents**.
+
+The risk engine produces structured optimization inputs from configured assumptions and scenario data.
+
+---
+
+## Step 3 — Re-optimize sensor placement
+
+With 12 candidate sensor locations and a sensor budget of `K=6`:
+
+```math
+\binom{12}{6}=924
+```
+
+feasible six-sensor combinations exist.
+
+In the reported synthetic leak case:
+
+```text
+Before leak
+C03 C04 C05 C08 C09 C10
+
+After leak
+C01 C04 C05 C08 C09 C10
+```
+
+The placement changed:
+
+```text
+C03 → C01
+```
+
+while satisfying the configured hard constraints.
+
+Reported synthetic risk-weighted coverage:
+
+```text
+0.539
+```
+
+Reported hard-constraint violations:
+
+```text
+0
+```
+
+The significance is not the particular sensor ID.
+
+The important behavior is that **changing the modeled risk landscape changed the optimal sensor allocation**.
+
+---
+
+## Step 4 — Convert coverage into observation confidence
+
+Sensor placement affects how confidently the system can observe different corridors.
+
+Poorly observed corridors receive a conservative risk adjustment.
+
+Conceptually:
+
+```math
+w'_e
+=
+w_e
+\left(
+1+\alpha(1-\mathrm{conf}_e)
+\right)
+```
+
+where:
+
+- `w_e` = original modeled corridor risk
+- `conf_e` = observation confidence for corridor `e`
+- `α` = conservative amplification factor
+
+This creates the explicit coupling between sensor placement and evacuation.
+
+---
+
+## Step 5 — Optimize evacuation jointly
+
+For four worker groups and three candidate routes per group:
+
+```text
+3^4 = 81
+```
+
+possible joint route combinations exist.
+
+When occupancy is small, independently selecting each group's shortest route can still produce the globally optimal solution.
+
+As occupancy rises, however, shared corridors create interactions between groups.
+
+---
+
+## Step 6 — Observe the congestion crossover
+
+At 320 total workers in the tested synthetic network:
+
+```text
+Independent shortest routes:
+384.2 s
+
+Joint optimization:
+312.9 s
+```
+
+Difference:
+
+```text
+71.3 s
+18.6%
+```
+
+> **The improvement comes from modeling interactions between worker groups—not from faster hardware.**
+
+The 320-worker value is a crossover point in this **synthetic experimental network**, not a real-world safety threshold.
+
+---
+
+# 5. Sensor Placement QUBO
+
+For each candidate sensor location `i`, define:
 
 ```math
 x_i \in \{0,1\}
@@ -116,13 +340,13 @@ x_i \in \{0,1\}
 
 where:
 
-- `x_i = 1`: install a sensor at candidate `i`
-- `x_i = 0`: do not install a sensor
+- `x_i = 1` → install the sensor
+- `x_i = 0` → do not install the sensor
 
-For `N` candidate locations, a sensor-placement solution is represented as:
+A complete sensor configuration is:
 
 ```math
-\mathbf{x} = (x_1, x_2, \ldots, x_N)
+x=(x_1,x_2,\ldots,x_N)
 ```
 
 For example:
@@ -131,40 +355,127 @@ For example:
 110100101010
 ```
 
-represents one sensor-placement state over 12 candidate locations.
+represents one binary configuration over 12 candidates.
 
 ---
 
-## 3.2 Sensor-Budget Constraint
+## 5.1 Sensor-Budget Constraint
 
-If exactly `K` sensors should be installed, the constraint is encoded using the quadratic penalty:
+If exactly `K` sensors must be installed:
 
 ```math
-P_K(\mathbf{x})
+H_K
 =
+\lambda_K
 \left(
-\sum_{i=1}^{N} x_i - K
+\sum_i x_i-K
 \right)^2
 ```
 
-This penalty reaches its minimum value when exactly `K` sensor candidates are selected.
+The penalty reaches its minimum when exactly `K` candidates are selected.
 
 ---
 
-## 3.3 Coverage Representation
+## 5.2 Risk-Weighted Coverage
 
 Let:
 
-- $r_z$ = modeled risk weight of zone $z$
-- $a_{zi} \in [0,1]$ = fractional coverage of zone $z$ by sensor candidate $i$
+- `r_z` = modeled risk weight of zone `z`
+- `a_zi ∈ [0,1]` = fractional coverage of zone `z` by sensor `i`
 
-The interactive optimization uses a quadratic surrogate for coverage so that the objective remains a QUBO.
+A quadratic coverage surrogate can be written as:
+
+```math
+H_{\mathrm{coverage}}
+=
+-\sum_z r_z \sum_i a_{zi}x_i
++
+\sum_z r_z
+\sum_{i \lt j}
+a_{zi}a_{zj}x_ix_j
+```
+
+The first term rewards sensor placements that observe high-risk zones.
+
+The second term discourages redundant placement when multiple sensors strongly overlap in the same risk-weighted region.
 
 ---
 
-## 3.4 Interactive Demo QUBO
+## 5.3 Installation Cost
 
-The current web demo uses the following objective:
+The fuller experimental formulation includes normalized installation cost:
+
+```math
+H_{\mathrm{cost}}
+=
+w_{\mathrm{cost}}
+\sum_i
+\frac{c_i}{c_{\max}}x_i
+```
+
+with experimental default:
+
+```math
+w_{\mathrm{cost}}=0.35
+```
+
+---
+
+## 5.4 Required-Zone Coverage
+
+Required zones can receive additional penalties.
+
+For a zone covered by one valid sensor candidate:
+
+```math
+H_z
+=
+\lambda_H(1-x_i)
+```
+
+For two valid candidates:
+
+```math
+H_z
+=
+\lambda_H(1-x_i)(1-x_j)
+```
+
+With three or more candidates, the exact product introduces higher-order terms.
+
+Because the solver pipeline expects a QUBO, the experimental implementation uses a **quadratic truncation** and records the approximation explicitly.
+
+---
+
+## 5.5 Full Experimental Sensor Objective
+
+Conceptually:
+
+```math
+H_{\mathrm{sensor}}
+=
+H_{\mathrm{coverage}}
++
+H_{\mathrm{cost}}
++
+H_K
++
+H_{\mathrm{required}}
+```
+
+The 12-variable competition-scale sensor QUBO is dense, with up to:
+
+```text
+66 / 66
+```
+
+pairwise interactions.
+
+---
+
+# 6. Interactive Demo QUBO
+
+The live web application intentionally uses a lighter objective to keep interactive execution fast and interpretable.
 
 ```math
 H_{\mathrm{demo}}(x)
@@ -182,143 +493,27 @@ a_{zi}a_{zj}x_ix_j
 \right)^2
 ```
 
-with current defaults:
+Current defaults:
 
 ```math
-\rho = 0.35,
-\qquad
-\lambda_K = 2.0
+\rho=0.35,\qquad \lambda_K=2.0
 ```
 
-The three terms have distinct roles:
+The three components are:
 
-1. **Coverage reward**
-
-```math
--\sum_z r_z \sum_i a_{zi}x_i
-```
-
-rewards sensors that cover higher-risk zones.
-
+1. **Risk-weighted coverage reward**
 2. **Redundant-coverage penalty**
-
-```math
-\rho
-\sum_z r_z
-\sum_{i \lt j}
-a_{zi}a_{zj}x_ix_j
-```
-
-penalizes pairs of sensors whose coverage overlaps strongly in the same risk-weighted zones.
-
 3. **Sensor-budget penalty**
 
-```math
-\lambda_K
-\left(
-\sum_i x_i-K
-\right)^2
-```
+The interactive demo deliberately omits some installation-cost and domain-specific terms used in the fuller experimental pipeline.
 
-encourages the solution to select exactly $K$ sensors.
-
-The interactive demo deliberately omits installation cost and some domain-specific constraints to keep the live optimization lightweight and interpretable.
+This is an explicit scope decision rather than an attempt to present the demo as a complete industrial optimization model.
 
 ---
 
-## 3.5 Full Experimental QUBO
+# 7. QUBO Surrogate vs. Evaluation Metric
 
-The original experimental pipeline uses a richer formulation.
-
-Conceptually:
-
-```math
-H_{\mathrm{full}}(x)
-=
-H_{\mathrm{coverage}}
-+
-H_{\mathrm{cost}}
-+
-H_K
-+
-H_{\mathrm{required}}
-```
-
-### Risk-weighted coverage and overlap
-
-```math
-H_{\mathrm{coverage}}
-=
--\sum_z r_z\sum_i a_{zi}x_i
-+
-\sum_z r_z
-\sum_{i \lt j}
-a_{zi}a_{zj}x_ix_j
-```
-
-The first term rewards coverage, while the quadratic term discourages redundant placement.
-
-### Installation cost
-
-Candidate installation cost is normalized by the maximum candidate cost:
-
-```math
-H_{\mathrm{cost}}
-=
-w_{\mathrm{cost}}
-\sum_i
-\frac{c_i}{c_{\max}}
-x_i
-```
-
-with the experimental default:
-
-```math
-w_{\mathrm{cost}} = 0.35
-```
-
-### Sensor-count constraint
-
-```math
-H_K
-=
-\lambda_K
-\left(
-\sum_i x_i-K
-\right)^2
-```
-
-If $\lambda_K$ is not explicitly provided, the implementation scales it from the largest absolute linear QUBO coefficient.
-
-### Required-zone coverage
-
-For zones designated as required-coverage zones, the implementation adds an additional penalty.
-
-For one valid covering sensor:
-
-```math
-H_z
-=
-\lambda_H(1-x_i)
-```
-
-For two valid covering sensors:
-
-```math
-H_z
-=
-\lambda_H(1-x_i)(1-x_j)
-```
-
-For three or more valid candidates, the full product would introduce higher-order terms. Because the solver pipeline expects a QUBO, the implementation uses a **quadratic truncation** rather than representing the higher-order polynomial exactly.
-
-This approximation is explicitly recorded by the experimental pipeline instead of being treated as an exact hard constraint.
-
----
-
-## 3.6 QUBO Surrogate vs. Evaluation Metric
-
-The quadratic objective is used for optimization, but the selected configuration is evaluated using a nonlinear union-coverage metric.
+The optimization objective is quadratic, but the selected configuration is evaluated afterward using nonlinear union coverage.
 
 For each zone:
 
@@ -327,12 +522,10 @@ c_z(x)
 =
 1-
 \prod_i
-\left(
-1-a_{zi}x_i
-\right)
+(1-a_{zi}x_i)
 ```
 
-The overall risk-weighted coverage is then:
+Overall risk-weighted coverage:
 
 ```math
 C_{\mathrm{true}}(x)
@@ -344,23 +537,183 @@ C_{\mathrm{true}}(x)
 }
 ```
 
-This distinction is important:
+This distinction is intentional:
 
-> The QUBO uses a quadratic surrogate that can be optimized by QAOA and classical QUBO solvers, while the resulting sensor configuration is evaluated afterward using the nonlinear union-coverage metric.
+> **QUBO provides a tractable quadratic optimization surrogate, while the selected solution is evaluated afterward using nonlinear union coverage.**
 
-This allows optimization to remain quadratic without pretending that overlapping sensor coverage is exactly linear.
+This avoids pretending that overlapping sensor coverage is exactly linear.
+
+Hard constraints are also rechecked after optimization.
+
+A low energy alone does not make an infeasible solution acceptable.
 
 ---
 
-# 4. QUBO → Ising → QAOA
+# 8. Evacuation Optimization
 
-A QUBO problem can be mapped to an Ising Hamiltonian using the binary-to-spin relation:
+For worker group `w` and route candidate `p`:
 
 ```math
-x_i = \frac{1-z_i}{2}
+y_{wp}\in\{0,1\}
 ```
 
-The resulting cost Hamiltonian can be written in the form:
+where:
+
+```text
+y_wp = 1
+```
+
+means worker group `w` selects route `p`.
+
+A simplified objective is:
+
+```math
+H_{\mathrm{evac}}
+=
+\sum_{w,p}
+y_{wp}
+\left(
+T_{wp}
++
+\lambda_R R_{wp}
++
+\lambda_D V_{wp}
+\right)
++
+\kappa
+\sum_{(w,p)\neq(w',p')}
+S_{wp,w'p'}
+y_{wp}y_{w'p'}
++
+\lambda_1
+\sum_w
+\left(
+\sum_p y_{wp}-1
+\right)^2
+```
+
+where:
+
+- `T_wp` = travel-time component
+- `R_wp` = modeled route risk
+- `V_wp` = additional route penalty
+- `S_wp,w'p'` = shared-corridor interaction
+- `κ` = congestion coupling
+- final term = one-route-per-group constraint
+
+The pairwise terms represent different physical interactions in the two optimization problems:
+
+```text
+Sensor QUBO      → overlapping observations
+Evacuation QUBO  → shared-corridor congestion
+```
+
+---
+
+# 9. Sequential Coupling Through Observation Confidence
+
+The two optimization stages are linked by an explicit interface.
+
+```text
+1. Solve sensor-placement QUBO
+                ↓
+2. Obtain sensor configuration x*
+                ↓
+3. Estimate observation confidence
+                ↓
+4. Increase risk on poorly observed routes
+                ↓
+5. Re-optimize evacuation
+```
+
+This architecture provides two important benefits.
+
+## Interpretability
+
+A route change can be traced back to a change in:
+
+```text
+sensor selection
+→ observation confidence
+→ route risk
+→ evacuation decision
+```
+
+instead of being hidden inside one large Hamiltonian.
+
+## Modular Validation
+
+The sensor and evacuation stages can be validated independently before their coupling is evaluated.
+
+---
+
+# 10. Why Scaling Matters
+
+The current problem size is intentionally small enough for exact verification.
+
+This is useful experimentally, but it also means the project does **not** demonstrate computational quantum advantage.
+
+## Sensor placement
+
+Current example:
+
+```math
+\binom{12}{6}=924
+```
+
+A larger hypothetical configuration:
+
+```math
+\binom{40}{10}
+=
+847660528
+```
+
+## Evacuation
+
+Current synthetic example:
+
+```text
+3^4 = 81
+```
+
+A larger example:
+
+```text
+4^10 = 1,048,576
+```
+
+Combinatorial search grows rapidly.
+
+However:
+
+> **Large combinatorial search spaces alone do not prove quantum advantage.**
+
+Future scaling studies should evaluate:
+
+- classical runtime
+- QAOA convergence
+- approximation quality
+- circuit depth
+- two-qubit gate count
+- hardware noise
+- total resource cost
+
+under matched problem instances.
+
+---
+
+# 11. QUBO → Ising → QAOA
+
+Binary QUBO variables can be mapped to spin variables using:
+
+```math
+x_i
+=
+\frac{1-z_i}{2}
+```
+
+The resulting cost Hamiltonian can be represented as:
 
 ```math
 H_C
@@ -373,7 +726,7 @@ H_C
 QAOA prepares a parameterized quantum state:
 
 ```math
-|\psi(\boldsymbol{\gamma},\boldsymbol{\beta})\rangle
+|\psi(\gamma,\beta)\rangle
 =
 \prod_{l=1}^{p}
 e^{-i\beta_l H_M}
@@ -381,9 +734,7 @@ e^{-i\gamma_l H_C}
 |+\rangle^{\otimes N}
 ```
 
-where $H_M$ is the mixer Hamiltonian.
-
-The final state can be expressed as:
+The final state can be written as:
 
 ```math
 |\psi\rangle
@@ -391,19 +742,156 @@ The final state can be expressed as:
 \sum_x \alpha_x |x\rangle
 ```
 
-and each computational-basis state has probability
+with:
 
 ```math
-P(x) = |\alpha_x|^2
+P(x)
+=
+|\alpha_x|^2
 ```
+
+Linear terms primarily map to single-qubit phase operations, while pairwise interactions produce `ZZ` / `RZZ`-type interactions.
+
+The number and topology of these pairwise couplings are important contributors to quantum circuit cost.
 
 ---
 
-# 5. QAOA State Distribution
+# 12. Verification Strategy
 
-One of my independent extensions was making the QAOA result **interpretable inside the application**.
+Quantum SafeON uses **exact classical optimization as the reference baseline whenever the problem size allows it**.
 
-Instead of displaying only a final objective value, the system extracts the most probable computational-basis states from the optimized statevector.
+For 12 sensor variables:
+
+```text
+2^12 = 4,096
+```
+
+binary states can be exhaustively evaluated.
+
+The original validation workflow included:
+
+| Category | Method |
+|---|---|
+| Exact reference | Exhaustive enumeration |
+| Classical heuristic | Greedy |
+| Classical heuristic | Simulated Annealing |
+| Classical baseline | Random |
+| Ideal quantum simulation | Statevector QAOA |
+| QAOA depth | `p=1`, `p=2` |
+| Cloud reference | IonQ simulator workflow |
+
+Invalid hard-constraint solutions are excluded from recommended results even if their raw energy is favorable.
+
+---
+
+## 12.1 Quantum Compilation Reference
+
+For the dense 12-variable sensor QUBO, the reference compilation reported:
+
+| Metric | Value |
+|---|---:|
+| Logical qubits | 12 |
+| Transpiled depth | 25 |
+| Pairwise `RZZ` terms | 66 |
+| Added SWAP operations | 0 |
+
+The zero-SWAP result is consistent with the all-to-all connectivity model used for the IonQ target.
+
+These are **compilation / simulator reference metrics**.
+
+### Physical QPU Status
+
+**This repository does not claim execution on a physical IonQ QPU.**
+
+Physical-QPU evaluation remains future work.
+
+---
+
+# 13. Experimental Results
+
+## 13.1 Weather Sensitivity
+
+The original experiment evaluated:
+
+```text
+8 wind directions
+×
+4 wind-speed levels
+=
+32 synthetic weather scenarios
+```
+
+Reported result:
+
+```text
+30 / 32
+```
+
+scenarios retained the same optimal sensor placement as the no-wind baseline.
+
+The two changed configurations occurred only under the tested:
+
+```text
+10 m/s
+```
+
+strong-wind scenarios.
+
+The configured hard coverage threshold remained satisfied across all 32 scenarios.
+
+These are **sensitivity scenarios**, not 32 independent real-world weather observations.
+
+---
+
+## 13.2 Congestion Crossover
+
+The evacuation experiment evaluated when independently selecting each worker group's shortest route stops producing the globally optimal solution.
+
+| Total Occupancy | Independent Shortest Routes Globally Optimal? | Reported Result |
+|---:|:---:|---|
+| 24 | Yes | No difference |
+| 60 | Yes | No difference |
+| 120 | Yes | No difference |
+| 200 | Yes | No difference |
+| **320** | **No** | **384.2 s → 312.9 s** |
+| 480 | No | 384.2 s → 369.7 s |
+
+At 320 workers:
+
+```text
+Makespan reduction: 71.3 s
+Relative reduction: 18.6%
+```
+
+The result demonstrates that:
+
+> **individually optimal paths no longer compose into a globally optimal evacuation plan once shared-corridor congestion becomes significant.**
+
+---
+
+## 13.3 Classical Baselines vs. QAOA
+
+For the 12-variable sensor-placement problem with `K=6`:
+
+| Detection Radius | Exact Weighted Coverage | QAOA `p=1` | QAOA `p=2` |
+|---|---:|---|---|
+| Low | 0.197 | Optimal state found | Optimal state found |
+| Nominal | 0.510 | Optimal state found | Optimal state found |
+| High | 0.682 | Not found | Optimal state found |
+
+The `p=1` failure in the high-radius case is intentionally retained rather than hidden.
+
+For these small instances, classical methods can also reach the exact optimum in reported cases.
+
+> **The value of this project is the explicit combinatorial reformulation, coupling architecture, and interpretable validation workflow—not a claim that QAOA outperforms classical optimization at this scale.**
+
+---
+
+# 14. QAOA State Distribution
+
+One of my independent post-competition extensions was making the QAOA result **interpretable inside the application**.
+
+Instead of displaying only a final objective value, the backend extracts the highest-probability computational-basis states from the optimized statevector.
 
 For each state, the UI displays:
 
@@ -412,6 +900,7 @@ For each state, the UI displays:
 - probability
 - selected sensors
 - QUBO energy
+- exact-optimum comparison
 
 Example:
 
@@ -423,9 +912,7 @@ Selected Sensors
 S1, S2, S4, S7, S9, S11
 ```
 
-When the user hovers over a QAOA state, the corresponding sensor candidates are highlighted directly on the floor plan.
-
-This creates an explicit mapping:
+The interpretation flow becomes:
 
 ```text
 QAOA Statevector
@@ -441,224 +928,232 @@ S1 S2 S4 S7 S9 S11
 Interactive Floor Plan
 ```
 
-This visualization is intended to make the relationship between **quantum state probabilities and actual optimization decisions** easier to inspect.
+When the user hovers over a QAOA state, the corresponding sensor candidates are highlighted directly on the floor plan.
 
----
+This makes the relationship between:
 
-# 6. Classical Baselines vs. QAOA
-
-The original experiments compared QAOA against classical optimization methods including:
-
-- Exact enumeration
-- Greedy search
-- Simulated Annealing
-- Random baseline
-
-For the 12-variable sensor-placement problem with $K=6$:
-
-| Detection Radius | Exact Weighted Coverage | QAOA p=1 | QAOA p=2 |
-|---|---:|:---:|:---:|
-| Low | 0.197 | Optimal state found | Optimal state found |
-| Nominal | 0.510 | Optimal state found | Optimal state found |
-| High | 0.682 | Not found | Optimal state found |
-
-The p=1 failure in the high-radius case is intentionally retained rather than hidden.
-
-This project **does not claim quantum advantage**.
-
-For the current small problem size, exact classical optimization remains computationally feasible and serves as the reference baseline.
-
----
-
-# 7. Evacuation Optimization & Congestion
-
-Evacuation routing uses a risk-aware objective rather than distance alone.
-
-A simplified route cost is:
-
-```math
-C_{\text{route}}
-=
-\sum_e
-d_e
-\left(
-1 + \lambda_r r_e
-\right)
-+
-C_{\text{congestion}}
+```text
+quantum-state probability
+        ↕
+actual optimization decision
 ```
 
-where:
-
-- $d_e$ = segment distance
-- $r_e$ = modeled risk along the segment
-- $C_{\text{congestion}}$ = penalty for shared evacuation corridors
-
-This means the system can prefer a slightly longer path when it reduces modeled hazard exposure.
+visually inspectable.
 
 ---
 
-## Congestion Crossover Experiment
+# 15. Interactive Web Application
 
-The original evacuation experiment evaluated when independently selecting each worker group's shortest route stops being globally optimal.
+The current web interface supports:
 
-| Total Occupancy | Independent Shortest Routes Globally Optimal? | Reported Makespan Change |
-|---:|:---:|---:|
-| 24 | Yes | No difference |
-| 60 | Yes | No difference |
-| 120 | Yes | No difference |
-| 200 | Yes | No difference |
-| **320** | **No** | **384.2 s → 312.9 s** |
-| 480 | No | 384.2 s → 369.7 s |
+- interactive floor-plan visualization
+- automatic / manual detection radius
+- sensor-candidate placement
+- multiple hazard sources
+- hazard positioning directly on the floor plan
+- weather adjustment
+- exits
+- worker locations and occupancy
+- risk heatmap
+- risk-aware evacuation analysis
+- congestion analysis
+- exact classical sensor optimization
+- ideal-statevector QAOA
+- optional IonQ simulator integration
+- QAOA State Distribution
+- state-to-sensor highlighting
+- layer filtering
+- route inspection
+- human-readable result explanations
 
-At higher occupancy, shared-corridor congestion couples decisions between worker groups.
-
-This is important because the optimization can no longer be decomposed into independent shortest-path decisions.
-
-It motivates a **joint combinatorial optimization formulation**, without implying that quantum optimization is required or superior.
-
----
-
-# 8. Hazard & Weather Modeling
-
-The interactive prototype supports multiple configurable hazard sources:
-
-- Fire
-- Gas Leak
-- Smoke
-
-Each hazard contains:
-
-- position
-- impact radius
-- intensity
-- hazard-type weighting
-
-Outside the configured impact radius, the current demo uses a first-order distance-decay approximation.
-
-When weather observations are available, wind direction and speed can modify modeled downwind risk.
-
-The current approximation is **not CFD** and does not model:
-
-- wall shielding
-- HVAC
-- ceiling height
-- local turbulence
-- detailed gas physics
-
-These limitations are explicitly surfaced in the UI.
+The web demo does **not** execute on a physical QPU.
 
 ---
 
-## Weather Sensitivity Experiment
+## 15.1 Recorded Demo Configuration
 
-The original project evaluated:
+The AWS demo GIF uses a deliberately constructed scenario designed to make the system behavior easy to inspect.
 
-- 8 wind directions
-- 4 wind-speed levels
+These values are **demonstration inputs**, not calibrated industrial measurements.
 
-for a total of 32 hypothetical weather scenarios.
+| Configuration | Demo Value | Rationale |
+|---|---|---|
+| Sensor candidates | `S1–S12` | Keeps the 12-variable state space exactly verifiable |
+| Sensor budget | `K=6` | Forces a meaningful allocation tradeoff |
+| Detection radius | `5 m` nominal | Uses the nominal demo configuration |
+| Hazard type | Gas Leak | Demonstrates risk and weather interaction |
+| Hazard location | `(22,13) m` | Creates spatial variation across candidate sensors and exits |
+| Hazard radius | `12 m` | Representative demo assumption affecting multiple regions |
+| Hazard intensity | `1.0` | Fixed reference intensity |
+| Wind | `33.8° NE`, `3.8 m/s` | Demonstrates directional risk adjustment |
+| Exits | `(27,17)`, `(4,3)` | Creates distinct evacuation alternatives |
+| Worker groups | `12`, `8`, `15` people | Demonstrates multiple origins and occupancy |
+| Backend | Ideal statevector simulator | Exposes the full QAOA probability distribution |
 
-Reported results showed:
-
-- **30 / 32** scenarios retained the same optimal sensor placement as the no-wind baseline
-- the two changed configurations differed by one sensor
-- placement changes occurred only under the tested **10 m/s strong-wind scenarios**
-- the configured hard coverage threshold remained satisfied across all 32 scenarios
-
-These 32 cases are sensitivity scenarios, not 32 independent weather observations.
+The current public demo acts as an **interactive systems explanation**, not as a digital twin of a real facility.
 
 ---
 
-# 9. Interactive Demo
+# 16. AWS Deployment
 
-Run the local application:
+The interactive portfolio application is deployed on **AWS Elastic Beanstalk**.
+
+```text
+User Browser
+      ↓
+Elastic Beanstalk Domain
+      ↓
+nginx Reverse Proxy
+      ↓
+Python Application
+PORT=8000
+      ↓
+Risk / QUBO / Exact / QAOA Modules
+```
+
+## Deployment Decisions
+
+### Elastic Beanstalk
+
+Elastic Beanstalk was selected to manage:
+
+- application deployment
+- platform configuration
+- environment health
+- EC2-backed execution
+- deployment versions
+
+without manually provisioning every infrastructure component.
+
+### Single-Instance Environment
+
+A single-instance architecture is used because this is a **low-traffic portfolio demo**.
+
+This avoids the cost and complexity of:
+
+- load balancing
+- multi-instance autoscaling
+- production-scale availability architecture
+
+that are not necessary for the current use case.
+
+### Compute Configuration
+
+The environment was configured with:
+
+```text
+t3.small preferred
+t3.micro fallback
+```
+
+to provide sufficient memory for the Python / NumPy / Qiskit workload while keeping the deployment lightweight.
+
+### Application Process
+
+The application process is defined through:
+
+```text
+Procfile
+```
+
+and the environment provides:
+
+```text
+PORT=8000
+```
+
+so the Python server listens on the port expected behind the Elastic Beanstalk nginx reverse proxy.
+
+### IAM Separation
+
+Elastic Beanstalk service permissions and EC2 runtime permissions are separated through:
+
+- Elastic Beanstalk service role
+- EC2 instance profile
+
+### Platform
+
+```text
+Python 3.13
+Amazon Linux 2023
+```
+
+---
+
+## Current AWS Limitations
+
+The deployment is intentionally a portfolio/demo environment.
+
+It currently uses:
+
+- one instance
+- no load balancer
+- no autoscaling
+- default Elastic Beanstalk HTTP endpoint
+- no custom HTTPS domain
+- Python `ThreadingHTTPServer` rather than a production WSGI/ASGI stack
+
+It should therefore be interpreted as a **live engineering demonstration**, not a production emergency-management service.
+
+---
+
+# 17. Run Locally
+
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the interactive application:
 
 ```bash
 python src/ui/server.py
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8788
 ```
 
-The demo includes:
-
-- interactive floor-plan visualization
-- configurable detection radius
-- sensor-candidate placement
-- multiple hazard sources
-- weather adjustment
-- exits and worker locations
-- risk heatmap
-- risk-aware evacuation routes
-- congestion analysis
-- Exact classical optimization
-- ideal-statevector QAOA
-- optional IonQ Cloud Simulator integration
-- QAOA State Distribution
-- interactive state-to-sensor highlighting
-- layer filtering and route inspection
-
-The demo does **not** execute on a physical QPU.
-
 ---
 
-# 10. Quantum Backends
-
-### Local
-
-The default QAOA backend is an ideal local statevector simulator.
-
-### IonQ
-
-The project contains integration for the IonQ cloud environment and has been tested with the IonQ simulator workflow.
-
-Physical `ionq_qpu` execution is **not claimed** in this repository.
-
----
-
-# 11. Run the Experiments
-
-Create an environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Sensor-placement experiment
+## Sensor-Placement Experiment
 
 ```bash
 python src/run_experiment.py
 ```
 
-### Evacuation experiment
+## Evacuation Experiment
 
 ```bash
 python src/run_evacuation_experiment.py
 ```
 
-### Weather sensitivity experiment
+## Weather-Sensitivity Experiment
 
 ```bash
 python src/weather_sensitivity.py
-```
-
-### Interactive demo
-
-```bash
-python src/ui/server.py
 ```
 
 Optional API-backed functionality uses environment variables rather than committed credentials.
 
 ---
 
-# 12. Repository Structure
+# 18. Repository Structure
 
 ```text
 Quantum_SafeON/
@@ -680,78 +1175,210 @@ Quantum_SafeON/
 ├── Data/
 ├── results/
 ├── tests/
+├── docs/
+│   └── images/
+│       └── quantum_safeon_demo_aws_url.gif
+│
 └── README.md
 ```
 
 ---
 
-# 13. Modeling Assumptions & Limitations
+# 19. Assumptions & Limitations
 
-Quantum SafeON is a research and portfolio prototype, not a production emergency-management system.
+Quantum SafeON is a **research and portfolio prototype**, not a production emergency-management system.
 
 Important limitations include:
 
-- the public demo floor plan is not a real industrial-site floor plan
-- current hazard propagation is a simplified first-order approximation
-- wall geometry and physical obstruction are not fully modeled
-- evacuation routing uses a simplified grid representation
-- congestion uses a first-order corridor-capacity approximation
+- the public floor plan is a CubiCasa5K residential demo, not a validated industrial BIM/CAD model
+- hazard inputs in the public demo are simulated / manually configured rather than live physical sensor readings
+- the `12 m` gas-impact radius is a demonstration assumption
+- hazard propagation uses a simplified first-order approximation
+- wind-direction adjustment is not CFD
+- wall shielding is not fully modeled
+- HVAC behavior is not modeled
+- ceiling height is not modeled
+- local turbulence is not modeled
+- detailed gas physics are not modeled
+- evacuation uses a simplified graph / grid representation
+- congestion uses a first-order shared-corridor approximation
+- current problem sizes remain tractable with exact classical methods
 - no quantum advantage is claimed
 - no physical QPU execution is claimed
-- current problem sizes remain tractable using classical exact methods
-- the floor-plan-to-zone ML module discussed during the original project was not implemented and is not represented as a completed feature
+- automatic floor-plan structure recognition with ML was not implemented
+- the 320-worker crossover is a synthetic experimental result, not a real industrial threshold
+- the AWS deployment is a single-instance HTTP demo, not a fault-tolerant safety system
 
 ---
 
-# 14. Project Provenance
+# 20. Project Provenance
 
 Quantum SafeON originated as a collaborative team project for the **Quantum Reframing Challenge 2026**.
 
-This repository is maintained as my fork of the original team repository in order to preserve project history and attribution.
+This repository is maintained as a fork of the original team repository to preserve project history and attribution.
 
-The original optimization concept, experimental framework, and system design were developed collaboratively by the team.
+The original:
 
-My post-competition work is maintained as clearly identifiable independent extensions, including the interactive QAOA state-analysis and visualization work described above.
+- optimization concept
+- experimental framework
+- scenario design
+- system architecture
 
----
+were developed collaboratively by the team.
 
-# 15. Current Development
+The post-competition extensions described in **My Role & Contributions** are maintained as identifiable independent additions.
 
-Current portfolio-development priorities:
-
-- cloud deployment of the interactive demo
-- improved reproducibility and automated testing
-- architecture and demo visualization
-- additional classical-vs-QAOA analysis
-
-Potential future research directions include richer industrial floor-plan modeling and learned risk estimation, but these are not presented as currently implemented features.
+The public floor-plan visualization uses **CubiCasa5K** data and should be interpreted according to the dataset's applicable attribution and license terms.
 
 ---
 
-## Tech Stack
+# 21. Verification Principles
 
-- **Languages:** Python, JavaScript, HTML/CSS
-- **Optimization:** QUBO, Exact Search, Greedy, Simulated Annealing, QAOA
-- **Quantum:** Qiskit, IonQ integration
-- **Scientific Computing:** NumPy
-- **Backend:** Python HTTP server
-- **Visualization:** HTML Canvas
-- **Data / Modeling:** Hazard scenarios, weather observations, evacuation graphs
+The project prioritizes reproducibility and bounded claims over presenting only successful results.
+
+Verification principles include:
+
+- compare experimental results against repository result files
+- use exact enumeration as a reference where feasible
+- retain failed QAOA cases instead of suppressing them
+- exclude hard-constraint violations from recommended solutions
+- distinguish assumptions from measured data
+- distinguish simulator results from physical-QPU execution
+- distinguish implemented features from planned features
+- avoid claiming quantum advantage without supporting evidence
 
 ---
 
-## Status
+<details>
+<summary><b>AI-Assisted Development Disclosure</b></summary>
 
-**Portfolio extension in active development.**
+AI-assisted tools were used during portions of research, mathematical formalization, code review and refactoring, UI development, documentation, and source checking.
 
-Current interactive implementation:
+They were treated as development aids rather than evidence.
 
-- QUBO sensor optimization ✅
+Numerical claims and experimental results were checked against exact baselines, repository outputs, reproducible experiments, or cited source material before inclusion.
+
+</details>
+
+---
+
+# 22. Current Status & Roadmap
+
+## Completed
+
+- Sensor-placement QUBO ✅
+- Evacuation optimization formulation ✅
+- Sequential observation-confidence coupling ✅
 - Exact classical baseline ✅
-- QAOA ideal-statevector simulation ✅
-- QAOA state-distribution visualization ✅
-- Interactive state-to-sensor mapping ✅
-- Hazard / weather / evacuation visualization ✅
+- Greedy / Simulated Annealing / Random comparisons ✅
+- Ideal-statevector QAOA ✅
+- Weather sensitivity experiments ✅
+- Congestion crossover experiments ✅
+- Interactive hazard / sensor / evacuation UI ✅
+- QAOA State Distribution ✅
+- State-to-sensor mapping ✅
 - English portfolio UI ✅
-- Physical QPU benchmark ❌
-- Cloud deployment → next
+- AWS Elastic Beanstalk deployment ✅
+
+## Next
+
+- larger controlled scaling experiments
+- stronger classical baseline benchmarking on identical problem instances
+- automated regression and reproducibility tests
+- richer validated BIM/CAD models
+- production-style application server
+- HTTPS and custom domain
+- physical-QPU evaluation after obtaining appropriate hardware access
+- noise and error-mitigation experiments
+
+---
+
+# 23. Tech Stack
+
+### Languages
+
+- Python
+- JavaScript
+- HTML / CSS
+
+### Optimization
+
+- QUBO
+- Exact Search
+- Greedy Search
+- Simulated Annealing
+- Dijkstra
+- QAOA
+
+### Quantum
+
+- Qiskit
+- IonQ simulator integration
+
+### Scientific Computing
+
+- NumPy
+
+### Visualization
+
+- HTML Canvas
+
+### Backend
+
+- Python HTTP server
+
+### Cloud
+
+- AWS Elastic Beanstalk
+- EC2-backed environment
+- nginx reverse proxy
+
+### Data / Modeling
+
+- hazard scenarios
+- weather observations
+- sensor coverage
+- evacuation graphs
+- congestion modeling
+
+---
+
+# 24. Selected References
+
+The original project used references spanning:
+
+- Korean occupational-safety regulations and guidance
+- Korea Meteorological Administration observations
+- NIST walking-speed and occupancy references
+- CubiCasa5K floor-plan data
+- QUBO literature
+- QAOA literature
+- Qiskit documentation
+- IonQ documentation
+
+Key methodological references include:
+
+- Glover et al. — QUBO formulation
+- Farhi et al. — Quantum Approximate Optimization Algorithm
+- Qiskit documentation
+- IonQ Qiskit integration documentation
+- CubiCasa5K dataset
+
+Project-specific numerical results are preserved in the repository's `results/` files.
+
+---
+
+## Portfolio Status
+
+**Active portfolio extension of a completed collaborative research prototype.**
+
+The project is intentionally presented with:
+
+- assumptions
+- failed experimental cases
+- classical reference results
+- simulator-only quantum results
+- implementation boundaries
+- deployment limitations
+
+visible rather than hidden.
