@@ -292,7 +292,7 @@ The corresponding quadratic penalty is:
 H_{\mathrm{overlap}}
 =
 \eta
-\sum_{j<k}
+\sum_{j\lt k}
 O_{jk}x_jx_k
 ```
 
@@ -305,7 +305,7 @@ Q_{jk}
 +
 \eta O_{jk}
 \qquad
-(j<k)
+(j\lt k)
 ```
 
 This increases the energy of configurations selecting strongly overlapping sensor pairs.
@@ -333,7 +333,7 @@ a_{zj}x_j
 \rho
 \sum_{z \in Z}
 r_z
-\sum_{j<k}
+\sum_{j\lt k}
 a_{zj}a_{zk}x_jx_k
 ```
 
@@ -398,7 +398,7 @@ Therefore:
 =
 \sum_jx_j
 +
-2\sum_{j<k}x_jx_k
+2\sum_{j\lt k}x_jx_k
 ```
 
 and:
@@ -410,7 +410,7 @@ H_K
 \left[
 (1-2K)\sum_jx_j
 +
-2\sum_{j<k}x_jx_k
+2\sum_{j\lt k}x_jx_k
 +
 K^2
 \right]
@@ -435,7 +435,7 @@ Q_{jk}
 +
 2\lambda_K
 \qquad
-(j<k)
+(j\lt k)
 ```
 
 The constant offset is:
@@ -585,7 +585,7 @@ w_{\mathrm{cost}}
 \sum_j\bar{c}_jx_j
 +
 \eta
-\sum_{j<k}
+\sum_{j\lt k}
 O_{jk}x_jx_k
 +
 \lambda_K
@@ -603,7 +603,7 @@ H(x)
 =
 \sum_iQ_{ii}x_i
 +
-\sum_{i<j}Q_{ij}x_ix_j
+\sum_{i\lt j}Q_{ij}x_ix_j
 +
 \mathrm{offset}
 ```
@@ -623,7 +623,7 @@ a_{zi}x_i
 \rho
 \sum_z
 r_z
-\sum_{i<j}
+\sum_{i\lt j}
 a_{zi}a_{zj}x_ix_j
 +
 \lambda_K
@@ -653,7 +653,7 @@ H(x)
 =
 \sum_iQ_{ii}x_i
 +
-\sum_{i<j}Q_{ij}x_ix_j
+\sum_{i\lt j}Q_{ij}x_ix_j
 +
 \mathrm{offset}
 ```
@@ -729,7 +729,7 @@ H_C
 =
 \sum_i h_iZ_i
 +
-\sum_{i<j}J_{ij}Z_iZ_j
+\sum_{i\lt j}J_{ij}Z_iZ_j
 +
 C
 ```
