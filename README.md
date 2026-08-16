@@ -126,11 +126,16 @@ SentinelPath separates the problem into two optimization stages connected by an 
 
 <p align="center">
   <img
-    src="docs/images/sentinelpath_system_architecture.png"
+    src="./docs/sentinelpath_system_architecture.png"
     alt="SentinelPath System Architecture"
     width="900"
-  >
+  />
 </p>
+
+The architecture follows a sequential information flow:
+
+**Sensor Placement → Observation Confidence → Conservative Route-Risk Adjustment → Evacuation Optimization**
+
 
 ---
 
