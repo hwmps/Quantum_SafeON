@@ -118,9 +118,9 @@ Using $A_j$ to denote the modeled coverage footprint of sensor $j$ and $Z_z$ to 
 a_{zj}
 =
 \frac{
-\operatorname{Area}(A_j \cap Z_z)
+\mathrm{Area}(A_j \cap Z_z)
 }{
-\operatorname{Area}(Z_z)
+\mathrm{Area}(Z_z)
 }
 ```
 
