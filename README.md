@@ -90,6 +90,29 @@ This work included:
 > The post-competition work was not a separate reimplementation of the original team project. It was an independent engineering phase that converted the collaborative research prototype into a more interpretable, reproducible, and publicly deployable system.
 
 ---
+# Technical Documentation
+
+For readers interested in the mathematical formulation and validation methodology behind SentinelPath:
+
+### 📐 [Sensor Placement QUBO: Mathematical Formulation and Validation](docs/qubo_formulation.md)
+
+This technical note provides the full mathematical treatment of the sensor-placement optimization problem, including:
+
+- binary decision variables and risk-weighted sensor coverage
+- installation-cost and redundant-coverage terms
+- sensor-budget and required-zone constraint encoding
+- QUBO coefficient and matrix conventions
+- QUBO-to-Ising transformation
+- QAOA formulation and state interpretation
+- exact classical validation and heuristic baselines
+- evaluation metrics, assumptions, limitations, and reproducibility
+- provenance of the original collaborative formulation and independent post-competition extensions
+
+> **Scope:** The technical note describes the fuller experimental QUBO formulation.  
+> The public interactive SentinelPath demo intentionally uses a lighter objective for faster and more interpretable execution.
+
+---
+
 # 1. Problem
 
 Emergency planning is not a static shortest-path problem.
@@ -336,6 +359,10 @@ The 320-worker value is a crossover point in this **synthetic experimental netwo
 ---
 
 # 5. Sensor Placement QUBO
+
+> 📐 **Full mathematical derivation:**  
+> See **[Sensor Placement QUBO: Mathematical Formulation and Validation](docs/qubo_formulation.md)** for the complete objective construction, constraint encoding, QUBO matrix convention, QUBO-to-Ising mapping, QAOA formulation, and exact classical validation.
+
 
 For each candidate sensor location `i`, define:
 
